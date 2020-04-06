@@ -33,7 +33,7 @@ class UDPClient: Client {
      * to all of the Clients (students).
      */
     fun activateQuestion(instructorUserName: String, host: String, port: Int,
-                                  questionToActivate: MultipleChoiceQuestion1) {
+                         questionToActivate: MultipleChoiceQuestion1) {
         val socket = DatagramSocket()
         log.info("activateQuestion function received an `activateQuestion` request from: "
                 + instructorUserName + " For the question: " + questionToActivate)

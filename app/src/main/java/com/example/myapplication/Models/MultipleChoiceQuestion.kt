@@ -10,7 +10,7 @@ import kotlinx.serialization.Serializable
 
 @Parcelize
 @Entity
-data class MultipleChoiceQuestion(
+data class MultipleChoiceQuestion (
     @PrimaryKey val question_id: String,
     val answer: String,
     val choices: List<String>,
