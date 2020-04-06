@@ -32,7 +32,7 @@ class UDPClient: Client {
      * When the instructor does so, this function will be invoked and will broadcast the question
      * to all of the Clients (students).
      */
-    fun activateQuestion(instructorUserName: String, host: String, port: Int,
+    override fun activateQuestion(instructorUserName: String, host: String, port: Int,
                          questionToActivate: MultipleChoiceQuestion1) {
         val socket = DatagramSocket()
         log.info("activateQuestion function received an `activateQuestion` request from: "

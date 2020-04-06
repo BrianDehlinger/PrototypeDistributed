@@ -10,10 +10,7 @@ import com.example.myapplication.DAOs.Cache
 import com.example.myapplication.DAOs.QuizDatabase
 import com.example.myapplication.DAOs.RepositoryImpl
 import com.example.myapplication.Models.*
-import com.example.myapplication.Networking.NetworkInformation
-import com.example.myapplication.Networking.UDPClient
-import com.example.myapplication.Networking.UDPListener
-import com.example.myapplication.Networking.UDPServer
+import com.example.myapplication.Networking.*
 import com.google.gson.Gson
 import com.google.zxing.WriterException
 import java.util.*
@@ -22,10 +19,6 @@ import kotlin.concurrent.schedule
 
 // https://demonuts.com/kotlin-generate-qr-code/ was used for the basis of  QRCode generation and used pretty much all of the code for the QR methods. Great thanks to the authors!
 class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
-    private var userType:UserType? = null
-    private var bitmap: Bitmap? = null
-    private var imageview: ImageView? = null
-    private var generateConnectionQrButton: Button? = null
     val converter = GSONConverter()
     val gson = Gson()
     val debug = true
@@ -33,7 +26,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
     var networkInformation: NetworkInformation?= null
     var activeQuestion: MultipleChoiceQuestion? = null
     val clientOne = NetworkInformation("10.0.2.2", 5000, "client")
-    val clientTwo = NetworkInformation("10.0.2.2", 5023, "client")
+    val clientTwo = NetworkInformation("10.0.2.2", 5023, "server")
     val clientThree = NetworkInformation("10.0.2.2", 5026, "client");
     val clientMonitor = ClientMonitor(arrayListOf(clientOne, clientTwo, clientThree))
 
@@ -43,7 +36,6 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
     // The actual persisted database!
     private var repository: RepositoryImpl? = null
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,7 +53,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         var userMetadataTextView: TextView = findViewById(R.id.userMetadata);
         userMetadataTextView.setText("userType: " + typeOfUser + "\n" + "Username: " + userName)
 
-        var bitmap: Bitmap? = null
+        var bitmap: Bitmap?
         var imageview = findViewById<ImageView>(R.id.iv)
         val generateConnectionQrButton = findViewById<Button>(R.id.generate_connection_qr_button)
 
@@ -125,7 +117,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         /* We don't want to block the UI thread */
         val server = UDPServer()
         server.addListener(this)
-        val udpDataListener = Thread(server)
+        val UDPDataListener = Thread(server)
         networkInformation = NetworkInformation.getNetworkInfo(this)
 
 
@@ -134,13 +126,13 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 isServer = true
                 server.setPort(5024)
                 networkInformation!!.port = 5024
-                networkInformation!!.type = "server"
+                networkInformation!!.peer_type = "server"
             }
         }
         if (isServer){
-            networkInformation!!.type = "server"
+            networkInformation!!.peer_type = "server"
         }
-        udpDataListener.start()
+        UDPDataListener.start()
 
 
         val dataaccess = QuizDatabase.getDatabase(this)
@@ -154,6 +146,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
     }
 
     override fun onUDP(data: String) {
+        println("RECEIVED FINE")
         Thread(Runnable {
             println(data)
             runOnUiThread {
@@ -170,6 +163,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 onHeartBeat(message as HeartBeat)
             }
             if (type == "failure_detected"){
+                println("failure!!!!")
                 val failedClient =  message as NetworkInformation
                 clientMonitor.getClient(failedClient).also {
                     it!!.other_client_failure_count.getAndIncrement()
@@ -188,27 +182,36 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
     private fun emitHeartBeat(){
         println("Emitting heartbeat")
         Thread(Runnable{
+            val clients = clientMonitor.getClients()
+            for (client in clients) {
+                var portToSend = client.port
+                if (debug){
+                    portToSend = 5023
+                }
 
-            for (client in clientMonitor.getClients()) {
+
                 val status = clientMonitor.getClient(client)
                 if (status?.other_client_failure_count!!.get() >= clientMonitor.getClients().size/2){
                     println("FAILOVER PROTOCOL INITIATED")
                 }
+
                 val heartbeat = HeartBeat(
                     ip = networkInformation!!.ip,
                     port = networkInformation!!.port.toString(),
-                    peer_type = networkInformation!!.type
+                    peer_type = networkInformation!!.peer_type
                 )
-                // DEBUG if the heartbeat is going to be sent to the server then actually send it out to "10.0.2.2" Change this to client.ip in prod
-                //println(clientMonitor) TODO: Uncommend -- make log message
+
+                // Send the heartbeat
                 if (debug == true) {
                     if (client == clientTwo) {
-                        UDPClient().sendMessage(gson.toJson(heartbeat), "10.0.2.2", client.port)
+                        UDPClient().sendMessage(gson.toJson(heartbeat), client.ip, portToSend)
                     }
                 }
                 else {
-                    UDPClient().sendMessage(gson.toJson(heartbeat), client.ip, client.port)
+                    UDPClient().sendMessage(gson.toJson(heartbeat), client.ip, portToSend)
                 }
+
+
                 if (status?.last_received!!.get() == 2) {
                     status.color = "yellow"
                 } else if (status.last_received.get() > 2) {
@@ -218,11 +221,15 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                         data.put("type", "failure_detected")
                         data.put("ip", client.ip)
                         data.put("port", client.port.toString())
-                        data.put("type", client.type)
+                        data.put("peer_type", client.peer_type)
                         val message = gson.toJson(data)
-                        for (client in clientMonitor.getClients()){
-                            UDPClient().sendMessage(message, client.ip, client.port)
+                        for (clientMonitored in clients){
+                            println("Client is $clientMonitored")
+                            val clientToSendDataTo = UDPClient()
+                            clientToSendDataTo.sendMessage(message, clientMonitored.ip, clientMonitored.port)
                         }
+
+                        // Show there was a failure
                         runOnUiThread{
                             Toast.makeText(applicationContext,"Failure detected at $client", Toast.LENGTH_SHORT).show()
                         }
@@ -246,10 +253,12 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 port = 5023
             }
         }
+        println("$ip, $port, $peerType")
         val client = clientMonitor.getClient(NetworkInformation(ip, port, peerType))
 
 
         if (client != null) {
+            println("Client is not null")
             client.color = "green"
             client.last_received.getAndSet(0)
             if (client.other_client_failure_count.toInt() > 0) {
@@ -264,6 +273,9 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                     UDPClient().sendMessage(gson.toJson(data), clientTwo.ip, clientTwo.port)
                 }).start()
             }
+        }
+        else {
+            println("CLIENT IS NULL")
         }
     }
 
