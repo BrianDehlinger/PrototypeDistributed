@@ -14,6 +14,8 @@ import com.example.myapplication.Networking.*
 import com.google.gson.Gson
 import com.google.zxing.WriterException
 import java.util.*
+import java.util.concurrent.Executors
+import java.util.concurrent.ThreadPoolExecutor
 import kotlin.concurrent.schedule
 
 
@@ -29,7 +31,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
     val clientTwo = NetworkInformation("10.0.2.2", 5023, "server")
     val clientThree = NetworkInformation("10.0.2.2", 5026, "client");
     val clientMonitor = ClientMonitor(arrayListOf(clientOne, clientTwo, clientThree))
-
+    val executor = Executors.newCachedThreadPool()
 
     // The in memory object cache!
     private val questionRepo = Cache()
@@ -69,7 +71,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         val responseID = UUID.randomUUID().toString()
 
         answerQuestionButton.setOnClickListener{
-            Thread(Runnable {
+            executor.execute(Thread(Runnable {
                 Intent(this, AnswerQuestionActivity::class.java).also{
                     if (activeQuestion == null) {
                         runOnUiThread{
@@ -89,17 +91,17 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                         startActivityForResult(it, 2)
                     }
                 }
-            }).start()
+            }))
         }
 
         generateConnectionQrButton!!.setOnClickListener {
             try {
-                Thread(Runnable {
+                executor.execute(Thread(Runnable {
                     bitmap = QRCodeGenerator.generateInitialConnectionQRCode(500, 500, this)
                     imageview!!.post {
                         imageview!!.setImageBitmap(bitmap)
                     }
-                }).start()
+                }))
             } catch (e: WriterException) {
                 e.printStackTrace()
             }
@@ -115,9 +117,9 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
 
         /* We don't want to block the UI thread */
-        val server = UDPServer()
+        val server = TCPServer()
         server.addListener(this)
-        val UDPDataListener = Thread(server)
+        val TCPDataListener = Thread(server)
         networkInformation = NetworkInformation.getNetworkInfo(this)
 
 
@@ -132,7 +134,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         if (isServer){
             networkInformation!!.peer_type = "server"
         }
-        UDPDataListener.start()
+        TCPDataListener.start()
 
 
         val dataaccess = QuizDatabase.getDatabase(this)
@@ -147,7 +149,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
     override fun onUDP(data: String) {
         println("RECEIVED FINE")
-        Thread(Runnable {
+        executor.execute(Thread(Runnable {
             println(data)
             runOnUiThread {
                 Toast.makeText(applicationContext, data, Toast.LENGTH_SHORT).show()
@@ -175,13 +177,13 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                     it!!.other_client_failure_count.getAndDecrement()
                 }
             }
-        }).start()
+        }))
     }
 
     // This is the scheduled function. Ideally this can also be packaged with the onHeartBeat etc.
     private fun emitHeartBeat(){
         println("Emitting heartbeat")
-        Thread(Runnable{
+        executor.execute(Thread(Runnable{
             val clients = clientMonitor.getClients()
             for (client in clients) {
                 var portToSend = client.port
@@ -204,11 +206,11 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 // Send the heartbeat
                 if (debug == true) {
                     if (client == clientTwo) {
-                        UDPClient().sendMessage(gson.toJson(heartbeat), client.ip, portToSend)
+                        TCPClient().sendMessage(gson.toJson(heartbeat), client.ip, portToSend)
                     }
                 }
                 else {
-                    UDPClient().sendMessage(gson.toJson(heartbeat), client.ip, portToSend)
+                    TCPClient().sendMessage(gson.toJson(heartbeat), client.ip, portToSend)
                 }
 
 
@@ -225,8 +227,14 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                         val message = gson.toJson(data)
                         for (clientMonitored in clients){
                             println("Client is $clientMonitored")
-                            val clientToSendDataTo = UDPClient()
-                            clientToSendDataTo.sendMessage(message, clientMonitored.ip, clientMonitored.port)
+                            executor.execute(Thread(Runnable {
+                                val clientToSendDataTo = TCPClient()
+                                clientToSendDataTo.sendMessage(
+                                    message,
+                                    clientMonitored.ip,
+                                    clientMonitored.port
+                                )
+                            }))
                         }
 
                         // Show there was a failure
@@ -237,7 +245,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 }
                 status.last_received.getAndIncrement()
             }
-        }).start()
+        }))
     }
 
     // This is the listener function. It can be packaged together with the clientMonitor functionality.
@@ -263,15 +271,15 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             client.last_received.getAndSet(0)
             if (client.other_client_failure_count.toInt() > 0) {
                 val data = hashMapOf<String, String>()
-                Thread(Runnable {
+                executor.execute(Thread(Runnable {
                     for (clientTwo in clientMonitor.getClients()) {
                         data.put("type", "connection_restored")
                         data.put("ip", heartBeat.ip)
                         data.put("port", heartBeat.port)
                         data.put("type", heartBeat.type)
                     }
-                    UDPClient().sendMessage(gson.toJson(data), clientTwo.ip, clientTwo.port)
-                }).start()
+                    TCPClient().sendMessage(gson.toJson(data), clientTwo.ip, clientTwo.port)
+                }))
             }
         }
         else {
@@ -285,9 +293,9 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             if (resultCode == Activity.RESULT_OK) {
                 val question = data?.getParcelableExtra("question") as MultipleChoiceQuestion
                 questionRepo.insertQuestion(question)
-                Thread(Runnable {
+                executor.execute(Thread(Runnable {
                     repository?.insertQuestion(question)
-                }).start()
+                }))
 
             }
         }
@@ -299,11 +307,11 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 }
                 val json = gson.toJson(jsonTree)
                 questionRepo.insertResponse(response)
-                Thread(Runnable{
+                executor.execute(Thread(Runnable{
                     for (client in clientMonitor.getClients()) {
-                        UDPClient().sendMessage(json, client.ip, client.port)
+                        TCPClient().sendMessage(json, client.ip, client.port)
                     }
-                }).start()
+                }))
             }
         }
         if (requestCode == 3){
@@ -313,11 +321,11 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                     it.asJsonObject.addProperty("type", "multiple_choice_question")
                 }
                 val json = gson.toJson(jsonTree)
-                Thread(Runnable{
+                executor.execute(Thread(Runnable{
                     for (client in clientMonitor.getClients()){
-                        UDPClient().sendMessage(json, client.ip, client.port)
+                        TCPClient().sendMessage(json, client.ip, client.port)
                     }
-                }).start()
+                }))
             }
         }
     }
