@@ -52,10 +52,6 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         val myLock = wifiManager.createWifiLock("lock")
         myLock.acquire()
 
-        for (i in 1..234){
-            clientMonitor.addClient(NetworkInformation("10.0.2.2", 5100+i, "client"))
-        }
-
 
         //TODO: print statements are sloppy. Make a logger.
         var typeOfUser = intent.getSerializableExtra("EXTRA_USER_TYPE").toString()
@@ -328,11 +324,11 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 }
                 val json = gson.toJson(jsonTree)
                 questionRepo.insertResponse(response)
-                executor.execute(Thread(Runnable{
                     for (client in clientMonitor.getClients()) {
+                        executor.execute(Thread(Runnable{
                         TCPClient().sendMessage(json, client.ip, client.port)
-                    }
-                }))
+                    }))
+                }
             }
         }
         if (requestCode == 3){
@@ -342,11 +338,15 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                     it.asJsonObject.addProperty("type", "multiple_choice_question")
                 }
                 val json = gson.toJson(jsonTree)
-                executor.execute(Thread(Runnable{
                     for (client in clientMonitor.getClients()){
-                        TCPClient().sendMessage(json, client.ip, client.port)
+                        var portToSend = client.port
+                        if (debug == true && portToSend == 5024){
+                            portToSend = 5023
+                        }
+                        executor.execute(Thread(Runnable {
+                            TCPClient().sendMessage(json, client.ip, portToSend)
+                        }))
                     }
-                }))
             }
         }
     }
