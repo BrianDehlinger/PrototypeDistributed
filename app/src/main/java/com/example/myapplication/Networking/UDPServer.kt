@@ -1,11 +1,11 @@
 package com.example.myapplication.Networking
 
 import android.content.Context
+import java.io.BufferedReader
+import java.io.InputStream
+import java.io.InputStreamReader
 import java.lang.Exception
-import java.net.DatagramSocket
-import java.net.DatagramPacket
-import java.net.InetAddress
-import java.net.InetSocketAddress
+import java.net.*
 
 // https://stackoverflow.com/questions/56874545/how-to-get-udp-data-constant-listening-on-kotlin
 // https://stackoverflow.com/questions/19540715/send-and-receive-data-on-udp-socket-java-android
@@ -16,7 +16,6 @@ class UDPServer: Server{
     private val listeners = mutableListOf<UDPListener>()
 
     // Can use composition by setting this to var to be more flexible.
-    private val messageSender = UDPClient()
     private var port = 6000
 
     fun setPort(port_to_set: Int){
@@ -24,10 +23,12 @@ class UDPServer: Server{
     }
 
     override fun listenForPackets(port: Int){
-        val buffer = ByteArray(4096)
+        val buffer = ByteArray(40000)
         var socket: DatagramSocket? = null
         try {
-            socket = DatagramSocket(InetSocketAddress(port))
+            socket = DatagramSocket(null)
+            socket.bind(InetSocketAddress("0.0.0.0", port))
+            socket.broadcast = true
             val packet = DatagramPacket(buffer, buffer.size)
             while (true) {
                 socket.receive(packet)
@@ -43,6 +44,7 @@ class UDPServer: Server{
             e.printStackTrace()
         }
     }
+
     override fun run() {
         println("Listening for UDP packets")
         listenForPackets(port)

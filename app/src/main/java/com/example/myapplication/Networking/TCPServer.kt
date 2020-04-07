@@ -49,6 +49,9 @@ class TCPServer : Server{
                 println(e.toString())
                 e.printStackTrace()
             }
+            finally{
+                clientSocket.close()
+            }
             for (listener in listeners) {
                 if (data != null){
                     listener.onUDP(data)

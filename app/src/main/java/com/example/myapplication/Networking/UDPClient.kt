@@ -1,5 +1,8 @@
 package com.example.myapplication.Networking
 
+import android.content.Context
+import android.net.wifi.WifiManager
+import android.os.StrictMode
 import com.example.myapplication.Models.MultipleChoiceQuestion1
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -25,6 +28,32 @@ class UDPClient: Client {
             println(e.toString())
             e.printStackTrace()
         }
+    }
+
+    fun broadcast(message: String, port: Int, context: Context){
+        println("Broadcasting")
+        val socket = DatagramSocket()
+        socket.broadcast = true
+        val data = message.toByteArray(Charsets.UTF_8)
+        try{
+            println("SENDING PACKET")
+            val packet = DatagramPacket(data, data.size, InetAddress.getByName("10.0.2.255"), port)
+            socket.send(packet)
+            println("PACKET SENT")
+        }
+        catch (e: Exception) {
+            println(e.toString())
+            e.printStackTrace()
+        }
+
+    }
+    fun getBroadcastAddress(context: Context): InetAddress{
+        val wifi = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        val dhcp = wifi.dhcpInfo
+        val broadcast = dhcp.ipAddress and dhcp.netmask or dhcp.netmask.inv()
+        val quads = ByteArray(4)
+        for (k in 0..3) quads[k] = (broadcast shr k * 8 and 0xFF).toByte()
+        return InetAddress.getByAddress(quads)
     }
 
     /**

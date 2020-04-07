@@ -1,9 +1,12 @@
 package com.example.myapplication
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.net.wifi.WifiManager
 import android.os.Bundle
+import android.os.StrictMode
 import androidx.appcompat.app.AppCompatActivity
 import android.widget.*
 import com.example.myapplication.DAOs.Cache
@@ -31,7 +34,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
     val clientTwo = NetworkInformation("10.0.2.2", 5023, "server")
     val clientThree = NetworkInformation("10.0.2.2", 5026, "client");
     val clientMonitor = ClientMonitor(arrayListOf(clientOne, clientTwo, clientThree))
-    val executor = Executors.newCachedThreadPool()
+    val executor = Executors.newFixedThreadPool(7)
 
     // The in memory object cache!
     private val questionRepo = Cache()
@@ -43,6 +46,16 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.activity_main)
+        val wifiManager = getSystemService(Context.WIFI_SERVICE) as WifiManager
+        val multicastLock = wifiManager.createMulticastLock("DOG")
+        multicastLock.acquire()
+        val myLock = wifiManager.createWifiLock("lock")
+        myLock.acquire()
+
+        for (i in 1..234){
+            clientMonitor.addClient(NetworkInformation("10.0.2.2", 5100+i, "client"))
+        }
+
 
         //TODO: print statements are sloppy. Make a logger.
         var typeOfUser = intent.getSerializableExtra("EXTRA_USER_TYPE").toString()
@@ -94,6 +107,8 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             }))
         }
 
+
+
         generateConnectionQrButton!!.setOnClickListener {
             try {
                 executor.execute(Thread(Runnable {
@@ -122,6 +137,11 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         val TCPDataListener = Thread(server)
         networkInformation = NetworkInformation.getNetworkInfo(this)
 
+        val udpServer = UDPServer()
+        udpServer.addListener(this)
+        udpServer.setPort(5009)
+        val UDPDataListener = Thread(udpServer)
+        UDPDataListener.start()
 
         if (debug == true) {
             if (networkInformation!!.ip == "10.0.2.18") {
@@ -136,13 +156,13 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         }
         TCPDataListener.start()
 
-
         val dataaccess = QuizDatabase.getDatabase(this)
         repository = RepositoryImpl(dataaccess.questionDao(), dataaccess.responseDao(), dataaccess.userDao(), dataaccess.quizDao())
 
         Timer("Heartbeat", false).schedule(100, 5000){
             emitHeartBeat()
         }
+
 
 
     }
@@ -225,10 +245,11 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                         data.put("port", client.port.toString())
                         data.put("peer_type", client.peer_type)
                         val message = gson.toJson(data)
+                        //UDPClient().broadcast(message, 5008, this)
                         for (clientMonitored in clients){
                             println("Client is $clientMonitored")
                             executor.execute(Thread(Runnable {
-                                val clientToSendDataTo = TCPClient()
+                                val clientToSendDataTo = UDPClient()
                                 clientToSendDataTo.sendMessage(
                                     message,
                                     clientMonitored.ip,
