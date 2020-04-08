@@ -6,8 +6,10 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.net.wifi.WifiManager
 import android.os.Bundle
+import android.provider.Settings
 import androidx.appcompat.app.AppCompatActivity
 import android.widget.*
+import androidx.lifecycle.Lifecycle
 import com.example.myapplication.DAOs.Cache
 import com.example.myapplication.DAOs.QuizDatabase
 import com.example.myapplication.DAOs.RepositoryImpl
@@ -15,6 +17,10 @@ import com.example.myapplication.Models.*
 import com.example.myapplication.Networking.*
 import com.google.gson.Gson
 import com.google.zxing.WriterException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -41,7 +47,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
     var isPeer = false
 
     // The current information of the network. (What's my IP, what's my port, what's my server type)
-    var networkInformation: NetworkInformation?= null
+    var networkInformation: NetworkInformation? = null
 
 
     // The current active question if any
@@ -79,10 +85,8 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         //TODO: print statements are sloppy. Make a logger.
         var typeOfUser = intent.getSerializableExtra("EXTRA_USER_TYPE").toString()
         var userName = getIntent().getStringExtra("EXTRA_USER_NAME")
-
         println("username: " + userName)
         println("userType: " + typeOfUser)
-
         //specify the userType in the UI's label
         var userMetadataTextView: TextView = findViewById(R.id.userMetadata);
         userMetadataTextView.setText("userType: " + typeOfUser + "\n" + "Username: " + userName)
@@ -95,24 +99,30 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         val answerQuestionButton = findViewById<Button>(R.id.answer_active)
         val browseQuestionsButton = findViewById<Button>(R.id.browse_questions)
 
-        browseQuestionsButton.setOnClickListener{
+        browseQuestionsButton.setOnClickListener {
             val intent = Intent(this, BrowseQuestions::class.java)
             startActivityForResult(intent, 3)
         }
 
         val responseID = UUID.randomUUID().toString()
 
-        answerQuestionButton.setOnClickListener{
+        answerQuestionButton.setOnClickListener {
             userInterfaceThreads.execute(Thread(Runnable {
-                Intent(this, AnswerQuestionActivity::class.java).also{
+                Intent(this, AnswerQuestionActivity::class.java).also {
                     if (activeQuestion == null) {
-                        runOnUiThread{
-                            Toast.makeText(applicationContext,"No active question", Toast.LENGTH_SHORT).show()
+                        runOnUiThread {
+                            Toast.makeText(
+                                applicationContext,
+                                "No active question",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
-                    }
-                    else {
+                    } else {
                         val user =
-                            User(nickname = "Brian", user_id = "5bca90f1-d5a4-46c5-8394-0b5cebbe1945")
+                            User(
+                                nickname = "Brian",
+                                user_id = "5bca90f1-d5a4-46c5-8394-0b5cebbe1945"
+                            )
                         val quiz = Quiz(activeQuestion!!.quiz_id, "BobMarley")
                         it.putExtra("active_question", activeQuestion)
                         repository!!.insertUser(user)
@@ -142,8 +152,8 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         }
 
         val quizId = UUID.randomUUID().toString()
-        create_question_button.setOnClickListener{
-            val intent = Intent(this, CreateQuestionActivity::class.java).also{
+        create_question_button.setOnClickListener {
+            val intent = Intent(this, CreateQuestionActivity::class.java).also {
                 it.putExtra("quizID", quizId)
             }
             startActivityForResult(intent, 1)
@@ -169,8 +179,8 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 networkInformation!!.peer_type = "server"
             }
         }
-        if (isRingLeader){
-            if (networkInformation!!.ip == "10.0.2.16"){
+        if (isRingLeader) {
+            if (networkInformation!!.ip == "10.0.2.16") {
                 server.setPort(6000)
             }
             networkInformation!!.peer_type = "server"
@@ -180,17 +190,22 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         TCPDataListener.start()
 
         val dataaccess = QuizDatabase.getDatabase(this)
-        repository = RepositoryImpl(dataaccess.questionDao(), dataaccess.responseDao(), dataaccess.userDao(), dataaccess.quizDao())
+                repository = RepositoryImpl(
+            dataaccess.questionDao(),
+            dataaccess.responseDao(),
+            dataaccess.userDao(),
+            dataaccess.quizDao()
+        )
 
 
         // Timed heartbeat
-        Timer("Heartbeat", false).schedule(100, 15000){
+        Timer("Heartbeat", false).schedule(100, 15000) {
             emitHeartBeat()
         }
 
 
-
     }
+
     override fun onUDP(data: String) {
         println("RECEIVED FINE")
         messageSenders.execute(Thread(Runnable {
@@ -203,26 +218,27 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
              */
             val type = gson.fromJson(data, Map::class.java)["type"] as String
             val message = converter.convertToClass(type, data)
-            if (type == "multiple_choice_question"){
+            if (type == "multiple_choice_question") {
                 activeQuestion = message as MultipleChoiceQuestion
                 println("Activating a question!")
             }
-            if (type == "hb"){
+            if (type == "hb") {
                 onHeartBeat(message as HeartBeat)
                 runOnUiThread {
-                    Toast.makeText(applicationContext, peerMonitor.toString(), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(applicationContext, peerMonitor.toString(), Toast.LENGTH_LONG)
+                        .show()
                 }
             }
-            if (type == "failure_detected"){
+            if (type == "failure_detected") {
                 println("failure!!!!")
-                val failedClient =  message as NetworkInformation
+                val failedClient = message as NetworkInformation
                 peerMonitor.getClient(failedClient).also {
                     it!!.other_client_failure_count.getAndIncrement()
                 }
             }
-            if (type == "restored_connection"){
+            if (type == "restored_connection") {
                 val restoredClient = message as NetworkInformation
-                peerMonitor.getClient(restoredClient).also{
+                peerMonitor.getClient(restoredClient).also {
                     it!!.other_client_failure_count.getAndDecrement()
                 }
             }
@@ -230,43 +246,55 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
     }
 
     // This is the scheduled function. Ideally this can also be packaged with the onHeartBeat etc.
-    private fun emitHeartBeat(){
+    private fun emitHeartBeat() {
         println("Emitting heartbeat")
-            val clients = peerMonitor.getClients()
-            for (client in clients) {
-                var portToSend = client.port
+        val clients = peerMonitor.getClients()
+        for (client in clients) {
+            var portToSend = client.port
 
-                val status = peerMonitor.getClient(client)
-                println("STATUS: $status")
-                if (status?.other_client_failure_count!!.get() >= peerMonitor.getClients().size/2){
-                    runOnUiThread{
-                        Toast.makeText(applicationContext,"Failover initiated for $client", Toast.LENGTH_SHORT).show()
-                    }
+            val status = peerMonitor.getClient(client)
+            println("STATUS: $status")
+            if (status?.other_client_failure_count!!.get() >= peerMonitor.getClients().size / 2) {
+                runOnUiThread {
+                    Toast.makeText(
+                        applicationContext,
+                        "Failover initiated for $client",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
+            }
 
-                val heartbeat = HeartBeat(
-                    ip = networkInformation!!.ip,
-                    port = networkInformation!!.port.toString(),
-                    peer_type = networkInformation!!.peer_type
-                )
+            val heartbeat = HeartBeat(
+                ip = networkInformation!!.ip,
+                port = networkInformation!!.port.toString(),
+                peer_type = networkInformation!!.peer_type
+            )
+            /*
                 messageSenders.execute(Thread(Runnable {
                     TCPClient().sendMessage(gson.toJson(heartbeat), client.ip, portToSend)
                 }))
 
-                if (status?.last_received!!.get() == 2) {
-                    status.color = "yellow"
-                } else if (status.last_received.get() > 2) {
-                    if (status.color != "red"){
-                        status.color = "red"
-                        val data = hashMapOf<String, String>()
-                        data.put("type", "failure_detected")
-                        data.put("ip", client.ip)
-                        data.put("port", client.port.toString())
-                        data.put("peer_type", client.peer_type)
-                        val message = gson.toJson(data)
-                        //UDPClient().broadcast(message, 5008, this)
-                        for (clientMonitored in clients){
-                            println("Client is $clientMonitored")
+                 */
+            GlobalScope.launch {
+                sendMessage(gson.toJson(heartbeat), client.ip, portToSend)
+            }
+
+
+            if (status?.last_received!!.get() == 2) {
+                status.color = "yellow"
+            } else if (status.last_received.get() > 2) {
+                if (status.color != "red") {
+                    status.color = "red"
+                    val data = hashMapOf<String, String>()
+                    data.put("type", "failure_detected")
+                    data.put("ip", client.ip)
+                    data.put("port", client.port.toString())
+                    data.put("peer_type", client.peer_type)
+                    val message = gson.toJson(data)
+                    //UDPClient().broadcast(message, 5008, this)
+                    for (clientMonitored in clients) {
+                        println("Client is $clientMonitored")
+                        /*
                             messageSenders.execute(Thread(Runnable {
                                 val clientToSendDataTo = TCPClient()
                                 clientToSendDataTo.sendMessage(
@@ -275,18 +303,33 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                                     clientMonitored.port
                                 )
                             }))
-                        }
-
-                        // Show there was a failure
-                        runOnUiThread{
-                            Toast.makeText(applicationContext,"Failure detected at $client", Toast.LENGTH_SHORT).show()
+                             */
+                        GlobalScope.launch {
+                            GlobalScope.launch {
+                                TCPClient().sendMessage(
+                                    message,
+                                    clientMonitored.ip,
+                                    clientMonitored.port
+                                )
+                            }
                         }
                     }
                 }
-                status.last_received.getAndIncrement()
-                println(status)
+
+
+                // Show there was a failure
+                runOnUiThread {
+                    Toast.makeText(
+                        applicationContext,
+                        "Failure detected at $client",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
+            status.last_received.getAndIncrement()
+            println(status)
         }
+    }
 
     // This is the listener function. It can be packaged together with the clientMonitor functionality.
     override fun onHeartBeat(heartBeat: HeartBeat) {
@@ -320,6 +363,12 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                     println("CLIENT IS NULL")
             }
         }
+
+    suspend fun sendMessage(json: String, ip: String, port: Int){
+        withContext(Dispatchers.IO) {
+            TCPClient().sendMessage(json, ip, port)
+        }
+    }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
