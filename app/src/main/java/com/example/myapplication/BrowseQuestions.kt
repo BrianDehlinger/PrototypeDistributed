@@ -35,10 +35,15 @@ class BrowseQuestions : AppCompatActivity() {
 
         exitButton.setOnClickListener{
             val returnIntent = Intent()
-            val adapter = recyclerView.adapter as MyAdapter
-            returnIntent.putExtra("question", adapter.getActiveQuestion())
-            setResult(Activity.RESULT_OK, returnIntent)
-            finish()
+            if (recyclerView.adapter == null){
+                finish()
+            }
+            else{
+                val adapter = recyclerView.adapter as MyAdapter
+                returnIntent.putExtra("question", adapter.getActiveQuestion())
+                setResult(Activity.RESULT_OK, returnIntent)
+                finish()
+            }
         }
         viewButton.setOnClickListener {
                 Thread(Runnable {

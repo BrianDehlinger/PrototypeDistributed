@@ -31,4 +31,8 @@ class ClientMonitor(clients: ArrayList<NetworkInformation> = arrayListOf()) {
     fun getClient(client: NetworkInformation): PeerStatus?{
         return clientTracker!![client]
     }
+
+    override fun toString(): String {
+        return clientTracker.toString()
+    }
 }
