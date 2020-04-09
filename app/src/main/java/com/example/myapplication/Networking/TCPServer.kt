@@ -8,6 +8,7 @@ import java.lang.Exception
 import java.net.ServerSocket
 import java.net.Socket
 import java.nio.Buffer
+import java.util.concurrent.ExecutorService
 
 class TCPServer : Server{
 
@@ -15,6 +16,7 @@ class TCPServer : Server{
     private var port = 6000
     var serverSocket: ServerSocket? = null;
     var socket: Socket? = null
+    var threadExService: ExecutorService? = null
 
     fun setPort(port_to_set: Int){
         port = port_to_set
@@ -29,21 +31,34 @@ class TCPServer : Server{
                 println(e.toString())
                 e.printStackTrace()
             }
-            serverThread(socket as Socket).start()
+            if (threadExService != null){
+                threadExService?.execute(serverThread(socket as Socket))
+            }
+            else {
+                serverThread(socket as Socket).start()
+            }
         }
+    }
+
+    fun setThreadPool(executorService: ExecutorService){
+        threadExService = executorService
     }
 
     inner class serverThread(val clientSocket: Socket): Thread() {
         override fun run() {
-            println("HERE")
             var data: String? = null
             val inputStream: InputStream
             val bufferedReader: BufferedReader
             try {
                 inputStream = clientSocket.getInputStream()
                 bufferedReader = BufferedReader(InputStreamReader(inputStream))
-                data = bufferedReader.readText()
-                clientSocket.close()
+                data = bufferedReader.readLine()
+
+                // Prevents a weird error. This needs to be troubleshooted.
+                if (data.takeLast(1) != "}"){
+                    println("THERE IS NO }!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                    data = "$data}"
+                }
                 inputStream.close()
             } catch (e: Exception) {
                 println(e.toString())

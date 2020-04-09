@@ -37,6 +37,8 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+// To inline the bytecode built with JVM target 1.8 into
+// bytecode that is being built with JVM target 1.6. (e.g. navArgs)
 }
 
 dependencies {
@@ -46,11 +48,14 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'androidx.appcompat:appcompat:1.1.0'
     implementation 'androidx.room:room-ktx:2.2.4'
+    implementation 'androidx.navigation:navigation-fragment-ktx:2.0.0'
+    implementation 'androidx.navigation:navigation-ui-ktx:2.0.0'
     kapt "androidx.room:room-compiler:2.2.4"
     kapt "androidx.room:room-compiler:$room_version"
     implementation "androidx.room:room-runtime:$room_version"
     implementation 'androidx.core:core-ktx:1.2.0'
     implementation "com.google.zxing:core:3.3.0"
+    implementation 'com.journeyapps:zxing-android-embedded:3.0.2@aar'
     implementation "com.google.protobuf:protobuf-lite:3.0.0"
     implementation 'com.google.zxing:javase:3.3.0'
     implementation 'io.javalin:javalin:3.7.0'

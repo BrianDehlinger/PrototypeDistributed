@@ -48,8 +48,14 @@
         android:id="@+id/activateDummyQuestion"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Activate Dummy Question"
+        android:text="@string/activate_dummy_question"
         />
+
+    <Button
+        android:id="@+id/connect_qr"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/connect_with_qr"/>
 
     <TextView
         android:id="@+id/currentActiveQuestionTextView"

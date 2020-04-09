@@ -23,8 +23,8 @@ class TCPClient: Client{
             e.printStackTrace()
         }
         finally {
-            outputSocket?.close()
             outputStream?.close()
+            outputSocket?.close()
         }
     }
 

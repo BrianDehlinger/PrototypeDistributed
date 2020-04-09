@@ -14,4 +14,15 @@
     <string name="return_from_activity">Return from activity</string>
     <string name="view_questions">View questions</string>
     <string name="browse_questions">Browse questions</string>
+    <string name="title_activity_qr_reading">qr_reading</string>
+    <!-- Strings used for fragments for navigation -->
+    <string name="first_fragment_label">First Fragment</string>
+    <string name="second_fragment_label">Second Fragment</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+
+    <string name="hello_first_fragment">Hello first fragment</string>
+    <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
+    <string name="connect_with_qr">Connect with QR</string>
+    <string name="activate_dummy_question">Activate Dummy Question</string>
 </resources>

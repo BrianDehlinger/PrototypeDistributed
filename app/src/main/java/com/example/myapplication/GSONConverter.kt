@@ -1,5 +1,6 @@
 package com.example.myapplication
 
+import android.net.Network
 import com.example.myapplication.Models.HeartBeat
 import com.example.myapplication.Models.MultipleChoiceQuestion
 import com.example.myapplication.Models.MultipleChoiceResponse
@@ -17,6 +18,7 @@ class GSONConverter(val gson: Gson = Gson()){
             "user" -> return gson.fromJson(json_string, User::class.java)
             "hb" -> return gson.fromJson(json_string, HeartBeat::class.java)
             "failure_detected" -> return gson.fromJson(json_string, NetworkInformation::class.java)
+            "network_info" -> return gson.fromJson(json_string, NetworkInformation::class.java)
         }
         return returnValue
     }

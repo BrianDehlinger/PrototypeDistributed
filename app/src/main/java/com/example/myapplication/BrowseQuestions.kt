@@ -23,7 +23,7 @@ class BrowseQuestions : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_browse_questions)
-        viewManager = LinearLayoutManager(this)
+        viewManager = LinearLayoutManager(this) as RecyclerView.LayoutManager
         val database = QuizDatabase.getDatabase(this)
         val repository = RepositoryImpl(database.questionDao(), database.responseDao(), database.userDao(), database.quizDao())
         val viewButton = findViewById<Button>(R.id.view_questions)

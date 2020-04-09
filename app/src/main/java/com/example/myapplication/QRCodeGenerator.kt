@@ -31,8 +31,11 @@ class QRCodeGenerator {
             }
         }
         fun generateInitialConnectionQRCode(width: Int, height: Int, context: Context): Bitmap{
-            val networkInfo = NetworkInformation.getNetworkInfo(context)
-            val connectionInfo = gson.toJson(networkInfo)
+            val networkInfo = NetworkInformation.getNetworkInfo(context, debugUse = true)
+            val jsonTree = gson.toJsonTree(networkInfo).also{
+                it.asJsonObject.addProperty("type", "network_info")
+            }
+            val connectionInfo = gson.toJson(jsonTree)
             return makeQRCodeFromText(text = connectionInfo, width=500, height = 500, context = context)
         }
     }
