@@ -7,7 +7,7 @@ import android.text.format.Formatter
 data class NetworkInformation (
     val ip: String,
     val port: Int,
-    val type: String
+    val peer_type: String
 ) {
     companion object NetworkInfoFactory{
 
