@@ -69,14 +69,6 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         setContentView(R.layout.activity_main)
 
         //TODO: print statements are sloppy. Make a logger.
-        //extracting the userType value. Converting from String to Enum value
-        val userTypeAsString = intent.getSerializableExtra("EXTRA_USER_TYPE").toString()
-        if(UserType.valueOf(userTypeAsString) == UserType.INSTRUCTOR) {
-            userType = UserType.INSTRUCTOR
-        } else if (UserType.valueOf(userTypeAsString) == UserType.STUDENT) {
-            userType = UserType.STUDENT
-        }
-
         //Extracting the userName value
         userName = getIntent().getStringExtra("EXTRA_USER_NAME")
 

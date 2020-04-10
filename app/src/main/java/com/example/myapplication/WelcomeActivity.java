@@ -32,10 +32,10 @@ public class WelcomeActivity extends AppCompatActivity {
          * The `userName` variable will be set when the `submitButton` gets clicked;
          * so their default values are left as null for now.
          * */
-        createSessionButton = (Button)findViewById(R.id.instructorButton);
-        joinSessionButton = (Button)findViewById(R.id.studentButton);
-        submitButton = (Button)findViewById(R.id.submitUserDetailsButton);
-        userNameEditText = (EditText)findViewById(R.id.usernameEditText);
+        createSessionButton = (Button)findViewById(R.id.welcomeActivity_createSessionButton);
+        joinSessionButton = (Button)findViewById(R.id.welcomeActivity_joinSessionButton);
+        submitButton = (Button)findViewById(R.id.welcomeActivity_submitButton);
+        userNameEditText = (EditText)findViewById(R.id.welcomeActivity_usernameEditText);
 
         //setup onClick listeners for all buttons
         setupOnClickListeners();
