@@ -1,22 +1,25 @@
 package com.example.quizlash.service.network
 
 import android.content.Intent
+import android.net.Network
 import com.example.quizlash.service.GSONConverter
 import com.example.quizlash.service.model.MultipleChoiceQuestion
+import com.example.quizlash.view.MainActivity
 import com.google.gson.Gson
-import io.atomix.cluster.Node
-import io.atomix.cluster.discovery.BootstrapDiscoveryProvider
-import io.atomix.core.Atomix
-import io.atomix.protocols.raft.partition.RaftPartitionGroup
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.util.*
 import java.util.concurrent.ExecutorService
+import kotlin.concurrent.schedule
 
 
-abstract class Session(var RingLeader: NetworkInformation, protected var sessionReplicas: MutableCollection<NetworkInformation>, val threadPool: ExecutorService): UDPListener {
+open class Session(var RingLeader: NetworkInformation, protected var sessionReplicas: MutableCollection<NetworkInformation>, val threadPool: ExecutorService): UDPListener {
 
     protected val gson = Gson()
     protected val gsonConverter = GSONConverter()
     protected val client = TCPClient()
-    protected val messageHandler: MessageHandler = MessageHandler()
+    open protected val messageHandler: MessageHandler = MessageHandler()
     protected val networkService = TCPServer().also{
         it.addListener(this)
         it.threadExService = threadPool
@@ -63,9 +66,9 @@ abstract class Session(var RingLeader: NetworkInformation, protected var session
         println("Failure detected")
     }
 
-    protected inner class MessageHandler {
+    open protected inner class MessageHandler {
 
-        fun handleMessage(message: String) {
+        open fun handleMessage(message: String) {
             println("Message is $message")
             val type = gson.fromJson(message, Map::class.java)["type"] as String
             val instantiatedObject = gsonConverter.convertToClass(type, message)
@@ -85,25 +88,35 @@ abstract class Session(var RingLeader: NetworkInformation, protected var session
                     val failure = instantiatedObject as NetworkInformation
                     replicaFailure(failure)
                 }
+                "connection_restored" -> {
+                    println("Connection restored")
+                }
             }
         }
     }
 }
 
-class ReplicaSession(RingLeader: NetworkInformation, sessionReplicas: MutableCollection<NetworkInformation>, threadPool: ExecutorService, var clients: MutableCollection<NetworkInformation>): Session(RingLeader, sessionReplicas, threadPool){
+class ReplicaSession(RingLeader: NetworkInformation, sessionReplicas: MutableCollection<NetworkInformation>, threadPool: ExecutorService, var clients: MutableCollection<NetworkInformation>, val peerId: Int): Session(RingLeader, sessionReplicas, threadPool){
 
+    override val messageHandler = ReplicaMessageHandler()
     private val peerMonitor: PeerMonitor = PeerMonitor().also {
         for (replica in sessionReplicas) {
-            it.addClient(replica)
+        it.addClient(replica)
+    }
+    }
+    private val bully = Bully(peerId, this)
+    var isRingLeader = false
+
+    init {
+        Timer("Heartbeat", false).schedule(100, 30000) {
+            emitHB()
         }
     }
 
-    var isRingLeader = false
 
-
-    override fun addReplica(client: NetworkInformation) {
-        super.addReplica(client)
-        peerMonitor.addClient(client)
+    override fun addReplica(replica: NetworkInformation) {
+        super.addReplica(replica)
+        peerMonitor.addClient(replica)
     }
     private fun updateReplicaStatus(replica: NetworkInformation) {
         val replicaMonitor = peerMonitor.getClient(replica)
@@ -135,8 +148,14 @@ class ReplicaSession(RingLeader: NetworkInformation, sessionReplicas: MutableCol
         }
     }
 
-    private fun failOverProtocol(){
-        println("FAILOVER INIT")
+    fun hasHighestPeerID(): Boolean{
+        return true
+    }
+
+    private fun failOverProtocol() {
+        CoroutineScope(Dispatchers.IO).launch {
+            bully.start()
+        }
     }
 
     override fun replicaFailure(failure: NetworkInformation) {
@@ -152,9 +171,27 @@ class ReplicaSession(RingLeader: NetworkInformation, sessionReplicas: MutableCol
         }
     }
 
+    fun sendToReplicas(message: String){
+        for (replica in sessionReplicas) {
+            sendMessage(gson.toJson(message), replica)
+        }
+    }
+
     override fun onHeartBeat(heartBeat: HeartBeat) {
         val replica = NetworkInformation(heartBeat.ip, heartBeat.port, heartBeat.peerType)
         replicaHB(replica)
+    }
+
+    fun getPeersWithHigherIds(): List<NetworkInformation>?{
+        return null
+    }
+
+    fun getPeerWithId(id: Int): NetworkInformation{
+        return NetworkInformation.getNetworkInfo(MainActivity())
+    }
+
+    fun getPeersWithLowerIds(): List<NetworkInformation>?{
+        return null
     }
 
     override fun activateQuestion(question: MultipleChoiceQuestion) {
@@ -169,4 +206,41 @@ class ReplicaSession(RingLeader: NetworkInformation, sessionReplicas: MutableCol
         val activateQuestionIntent = Intent()
     }
 
+    protected inner class ReplicaMessageHandler: MessageHandler() {
+
+        override fun handleMessage(message: String) {
+            println("Message is $message")
+            val type = gson.fromJson(message, Map::class.java)["type"] as String
+            val instantiatedObject = gsonConverter.convertToClass(type, message)
+            when (type){
+                "multiple_choice_question" -> {
+                    println("ACTIVATING A QUESTION")
+                    val activeQuestion = instantiatedObject as MultipleChoiceQuestion
+                    activateQuestion(activeQuestion)
+                }
+                "hb" -> {
+                    println("HEARTBEAT LOGIC")
+                    val heartBeat = instantiatedObject as HeartBeat
+                    onHeartBeat(heartBeat)
+                }
+                "failure_detected" -> {
+                    println("FAILURE LOGIC")
+                    val failure = instantiatedObject as NetworkInformation
+                    replicaFailure(failure)
+                }
+                "connection_restored" -> {
+                    println("Connection restored")
+                }
+                "bully_election" -> {
+                    bully.onElectionMessage(instantiatedObject as BullyElectionMessage)
+                }
+                "bully_ok" -> {
+                    bully.onOKMessage(instantiatedObject as BullyOKMessage)
+                }
+                "bully_coordinator" -> {
+                    bully.onCoordinatorMessage(instantiatedObject as BullyCoordinatorMessage)
+                }
+             }
+        }
+    }
 }
