@@ -104,7 +104,7 @@ class ReplicaSession(RingLeader: NetworkInformation, sessionReplicas: MutableCol
         it.addClient(replica)
     }
     }
-    private val bully = Bully(peerId, this)
+    private val bully = Bully(this)
     var isRingLeader = false
 
     init {

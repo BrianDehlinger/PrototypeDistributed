@@ -7,14 +7,13 @@ import java.util.concurrent.atomic.AtomicInteger
 
 class Bully(val session: ReplicaSession){
 
-    var started: AtomicBoolean = AtomicBoolean(false)
     var okReceived: AtomicBoolean = AtomicBoolean(false)
     var droppedOut: AtomicBoolean = AtomicBoolean(false)
-    var term: AtomicInteger = AtomicInteger(1)
     var victoryMessageReceived: AtomicBoolean = AtomicBoolean(false)
 
     suspend fun start(){
         println("STARTING ELECTION")
+        this.clear()
         val clientsWithHigherIds = session.getPeersWithHigherIds()
         if (clientsWithHigherIds == null){
             session.RingLeader = session.getPeerWithId(session.peerId)
@@ -48,8 +47,7 @@ class Bully(val session: ReplicaSession){
                         }
                     }
                 }
-                catch(e:CancellationException){
-                    this.clear()
+                catch(e:TimeoutCancellationException){
                     this.start()
                 }
             }
@@ -67,7 +65,6 @@ class Bully(val session: ReplicaSession){
             session.sendMessage(BullyOKMessage(peerId = session.peerId).toString(), session.getPeerWithId(electionMessage.peerId))
             if (electionMessage.peerId < session.peerId){
                 CoroutineScope(Dispatchers.IO).launch {
-                    bully.clear()
                     bully.start()
                 }
             }
@@ -85,14 +82,6 @@ class Bully(val session: ReplicaSession){
 
     private fun dropOut(){
         droppedOut.getAndSet(true)
-        println("DROPPED OUT OF ELECTION ${term.get()}")
-    }
-
-    private fun newTerm(){
-        okReceived.getAndSet(false)
-        droppedOut.getAndSet(false)
-        victoryMessageReceived.getAndSet(false)
-        term.getAndIncrement()
     }
 
     private fun clear(){
