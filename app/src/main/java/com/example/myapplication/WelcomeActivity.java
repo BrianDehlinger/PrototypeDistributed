@@ -137,10 +137,9 @@ public class WelcomeActivity extends AppCompatActivity {
                     } else {
 
                         /**
-                         * TODO: On the line below, 'MainActivity.class' needs to be replaced by a
-                         *  soon-to-be created Activity for creating a new session.
+                         * Set the `nextActivity` to be the `CreateQuizActivity`
                          */
-                        nextActivity = new Intent(WelcomeActivity.this, MainActivity.class);
+                        nextActivity = new Intent(WelcomeActivity.this, CreateQuizActivity.class);
 
                         //Passing in "extra" data to the mainActivity for use by the MainActivity
                         nextActivity.putExtra("EXTRA_USER_NAME", userName);
