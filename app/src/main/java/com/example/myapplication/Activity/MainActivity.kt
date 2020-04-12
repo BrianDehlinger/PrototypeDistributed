@@ -25,7 +25,6 @@ import com.google.zxing.WriterException
 import java.util.*
 import kotlin.concurrent.schedule
 
-
 // https://demonuts.com/kotlin-generate-qr-code/ was used for the basis of  QRCode generation and used pretty much all of the code for the QR methods. Great thanks to the authors!
 class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
     var userType: UserType? = null
@@ -183,7 +182,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
             //Create a dummy MultipleChoiceQuestion object
             val dummyQuestion: MultipleChoiceQuestion1 =  MultipleChoiceQuestion1(
-                quizId, questionId, prompt, answerChoices, answer
+                UUID.randomUUID(), UUID.randomUUID(), prompt, answerChoices, answer
             )
 
             //Ony the instructor has the power to change the active question
