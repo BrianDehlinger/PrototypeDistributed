@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.example.myapplication.Activity
 
 import android.app.Activity
 import android.content.Intent
@@ -8,16 +8,18 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.annotation.RequiresPermission
 import androidx.appcompat.app.AppCompatActivity
 import com.example.myapplication.DAOs.Cache
 import com.example.myapplication.DAOs.QuizDatabase
 import com.example.myapplication.DAOs.RepositoryImpl
+import com.example.myapplication.GSONConverter
 import com.example.myapplication.Models.*
 import com.example.myapplication.Networking.NetworkInformation
 import com.example.myapplication.Networking.UDPClient
 import com.example.myapplication.Networking.UDPListener
 import com.example.myapplication.Networking.UDPServer
+import com.example.myapplication.QRCodeGenerator
+import com.example.myapplication.R
 import com.google.gson.Gson
 import com.google.zxing.WriterException
 import java.util.*
@@ -145,7 +147,12 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         generateConnectionQrButton!!.setOnClickListener {
             try {
                 Thread(Runnable {
-                    bitmap = QRCodeGenerator.generateInitialConnectionQRCode(500, 500, this)
+                    bitmap =
+                        QRCodeGenerator.generateInitialConnectionQRCode(
+                            500,
+                            500,
+                            this
+                        )
                     imageview!!.post {
                         imageview!!.setImageBitmap(bitmap)
                     }

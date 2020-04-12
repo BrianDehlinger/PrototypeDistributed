@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.example.myapplication.Activity
 
 import android.app.Activity
 import android.content.Intent
@@ -10,7 +10,7 @@ import android.widget.Spinner
 import android.widget.TextView
 import com.example.myapplication.Models.MultipleChoiceQuestion
 import com.example.myapplication.Models.MultipleChoiceResponse
-import java.util.*
+import com.example.myapplication.R
 
 class AnswerQuestionActivity : AppCompatActivity() {
 

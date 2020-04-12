@@ -17,18 +17,18 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
-        <activity android:name=".CreateQuizActivity"></activity>
-        <activity android:name=".WelcomeActivity">
+        <activity android:name=".Activity.CreateQuizActivity"></activity>
+        <activity android:name=".Activity.WelcomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".BrowseQuestions" />
-        <activity android:name=".AnswerQuestionActivity" />
-        <activity android:name=".CreateQuestionActivity" />
-        <activity android:name=".MainActivity" />
+        <activity android:name=".Activity.BrowseQuestions" />
+        <activity android:name=".Activity.AnswerQuestionActivity" />
+        <activity android:name=".Activity.CreateQuestionActivity" />
+        <activity android:name=".Activity.MainActivity" />
     </application>
 
 </manifest>

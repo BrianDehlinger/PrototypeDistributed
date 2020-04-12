@@ -1,14 +1,13 @@
-package com.example.myapplication
+package com.example.myapplication.Activity
 
 import android.app.Activity
-import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.example.myapplication.Models.MultipleChoiceQuestion
-import kotlinx.android.synthetic.main.activity_create_question.*
+import com.example.myapplication.R
 import java.util.*
 
 

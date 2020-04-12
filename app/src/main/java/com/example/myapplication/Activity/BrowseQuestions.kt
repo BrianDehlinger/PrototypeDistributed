@@ -1,17 +1,16 @@
-package com.example.myapplication
+package com.example.myapplication.Activity
 
 import android.app.Activity
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.widget.ArrayAdapter
 import android.widget.Button
-import android.widget.ListView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.myapplication.DAOs.QuizDatabase
 import com.example.myapplication.DAOs.RepositoryImpl
-import com.example.myapplication.Models.MultipleChoiceQuestion
+import com.example.myapplication.MyAdapter
+import com.example.myapplication.R
 
 class BrowseQuestions : AppCompatActivity() {
 
@@ -44,7 +43,8 @@ class BrowseQuestions : AppCompatActivity() {
                 Thread(Runnable {
                     val questions = ArrayList(repository.getAllQuestions())
                     runOnUiThread {
-                        recyclerView.adapter = MyAdapter(questions)
+                        recyclerView.adapter =
+                            MyAdapter(questions)
                     }
                 }).start()
         }
