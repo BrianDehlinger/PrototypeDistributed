@@ -5,12 +5,13 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 
-class Bully(peerId: Int, val session: ReplicaSession){
+class Bully(val session: ReplicaSession){
 
     var started: AtomicBoolean = AtomicBoolean(false)
     var okReceived: AtomicBoolean = AtomicBoolean(false)
     var droppedOut: AtomicBoolean = AtomicBoolean(false)
     var term: AtomicInteger = AtomicInteger(1)
+    var victoryMessageReceived: AtomicBoolean = AtomicBoolean(false)
 
     suspend fun start(){
         println("STARTING ELECTION")
@@ -37,6 +38,21 @@ class Bully(peerId: Int, val session: ReplicaSession){
                 session.RingLeader = session.getPeerWithId(session.peerId)
                 session.sendToReplicas(BullyCoordinatorMessage(peerId = session.peerId).toString())
             }
+            catch(e: CancellationException){
+                try{
+                    withTimeout(9000){
+                        repeat(10){
+                            if (victoryMessageReceived.get()){
+                                cancel()
+                            }
+                        }
+                    }
+                }
+                catch(e:CancellationException){
+                    this.clear()
+                    this.start()
+                }
+            }
         }
     }
     fun onElectionMessage(electionMessage: BullyElectionMessage, bully: Bully = this){
@@ -49,8 +65,9 @@ class Bully(peerId: Int, val session: ReplicaSession){
         }
         else {
             session.sendMessage(BullyOKMessage(peerId = session.peerId).toString(), session.getPeerWithId(electionMessage.peerId))
-            if (!started.get()) {
+            if (electionMessage.peerId < session.peerId){
                 CoroutineScope(Dispatchers.IO).launch {
+                    bully.clear()
                     bully.start()
                 }
             }
@@ -74,7 +91,14 @@ class Bully(peerId: Int, val session: ReplicaSession){
     private fun newTerm(){
         okReceived.getAndSet(false)
         droppedOut.getAndSet(false)
+        victoryMessageReceived.getAndSet(false)
         term.getAndIncrement()
+    }
+
+    private fun clear(){
+        okReceived.getAndSet(false)
+        droppedOut.getAndSet(false)
+        victoryMessageReceived.getAndSet(false)
     }
 }
 
