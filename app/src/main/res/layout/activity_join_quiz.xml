@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".Activity.JoinQuizActivity">
+
+    <TextView
+        android:id="@+id/joinQuizActivity_bannerMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Join an Existing Quiz"
+        android:layout_centerHorizontal="true"
+        android:textSize="30dp" />
+
+    <EditText
+        android:id="@+id/joinQuizActivity_sessionIdEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="50dp"
+        android:hint="Enter an existing SessionID"
+        android:layout_below="@id/joinQuizActivity_bannerMessage"
+        />
+
+    <Button
+        android:id="@+id/joinQuizActivity_submitButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ENTER"
+        android:layout_below="@id/joinQuizActivity_sessionIdEditText"
+        android:layout_centerHorizontal="true"/>
+
+
+
+
+
+</RelativeLayout>

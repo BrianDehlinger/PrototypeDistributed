@@ -13,6 +13,7 @@ import android.widget.ListView;
 import com.example.myapplication.Models.MultipleChoiceQuestion;
 import com.example.myapplication.Models.MultipleChoiceQuestion1;
 import com.example.myapplication.Models.Quiz1;
+import com.example.myapplication.Models.UserType;
 import com.example.myapplication.R;
 import com.google.gson.Gson;
 
@@ -69,9 +70,6 @@ public class CreateQuizActivity extends AppCompatActivity {
             newMultipleChoiceQuestion1 = gson.fromJson(getIntent().getStringExtra("newQuestion"),
                     MultipleChoiceQuestion1.class);
 
-            listOfQuizQuestions.add(newMultipleChoiceQuestion1);
-            System.out.println("List of questions is of size: " + listOfQuizQuestions.size());
-
             //store the new prompt to be displayed in the ListView
             listOfQuestionPrompts.add(newMultipleChoiceQuestion1.getPrompt());
 
@@ -120,10 +118,13 @@ public class CreateQuizActivity extends AppCompatActivity {
                 Intent nextActivity = new Intent(CreateQuizActivity.this,
                         MainActivity.class);
 
+                System.out.println("sending questQuestions of following size: " + listOfQuizQuestions.size());
+
                 //Passing in "extra" data to the nextActivity
                 nextActivity.putExtra("EXTRA_USER_NAME", userName);
                 nextActivity.putExtra("EXTRA_QUIZ_NAME", quizName);
                 nextActivity.putExtra("EXTRA_LIST_OF_QUIZ_QUESTIONS", (Serializable) listOfQuizQuestions);
+                nextActivity.putExtra("EXTRA_USER_TYPE", UserType.SERVER);
 
                 //start the nextActivity
                 startActivity(nextActivity);
@@ -155,26 +156,6 @@ public class CreateQuizActivity extends AppCompatActivity {
     private void findViewsByIds() {
         listview = findViewById(R.id.listView);
         addNewQuestionButton = findViewById(R.id.addNewQuestionButton);
-    }
-
-
-    private void checkForNewReceivedQuestion() {
-        MultipleChoiceQuestion1 newMultipleChoiceQuestion1;
-
-        if(getIntent().getStringExtra("newQuestion") != null) {
-            Gson gson = new Gson();
-            newMultipleChoiceQuestion1 = gson.fromJson(getIntent().getStringExtra("newQuestion"),
-                    MultipleChoiceQuestion1.class);
-
-            listOfQuizQuestions.add(newMultipleChoiceQuestion1);
-            System.out.println("List of questions is of size: " + listOfQuizQuestions.size());
-
-            //store the new prompt to be displayed in the ListView
-            listOfQuestionPrompts.add(newMultipleChoiceQuestion1.getPrompt());
-
-            //store the entire multipleChoiceQuestion to be used when the quiz is activated.
-            listOfQuizQuestions.add(newMultipleChoiceQuestion1);
-        }
     }
 
 }

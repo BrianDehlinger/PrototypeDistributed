@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
@@ -30,10 +31,14 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
     var userType: UserType? = null
     var quizName: String? = null
     var userName: String? = null
+    var sessionId: String? = null
     private var bitmap: Bitmap? = null
     private var imageview: ImageView? = null
     private var generateConnectionQrButton: Button? = null
+    private var activateNextQuestionButton: Button? = null
+
     private var sessionIdTextView: TextView? = null
+    private var activateQuizButton: Button? = null
     val converter = GSONConverter()
     var ip = "0.0.0.0"
     val gson = Gson()
@@ -46,7 +51,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
     var listOfQuizQuestions: ArrayList<MultipleChoiceQuestion1>? = null
 
-    //var currentActiveQuestionTextView: TextView = findViewById(R.id.currentActiveQuestionTextView)
+    var CURRENT_QUESTION_INDEX = 0
 
     // The in memory object cache!
     private val questionRepo = Cache()
@@ -73,17 +78,39 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
         setContentView(R.layout.activity_main)
 
+        userType = intent.getSerializableExtra("EXTRA_USER_TYPE") as UserType?
+        sessionIdTextView = findViewById<TextView>(R.id.mainActivity_sessionIdTextView)
+
+        if(UserType.SERVER.equals(userType)) {
+            quizName = getIntent().getStringExtra("EXTRA_QUIZ_NAME")
+
+            val i = intent
+            listOfQuizQuestions = intent.getSerializableExtra("EXTRA_LIST_OF_QUIZ_QUESTIONS") as ArrayList<MultipleChoiceQuestion1>
+
+            println("received the following listOfQuestions size: ")
+            println(listOfQuizQuestions!!.size)
+
+            showServerButtons()
+
+            //Generating a random int as sessionId.
+            val randomSessionId = (Math.random() * 9000).toInt() + 1000
+            sessionIdTextView?.setText("Session ID: " + randomSessionId.toString())
+            sessionId = randomSessionId.toString()
+        } else {
+            hideServerButtons()
+            sessionId = getIntent().getStringExtra("EXTRA_SESSION_ID")
+            sessionIdTextView?.setText(sessionId)
+        }
+
+
         //TODO: print statements are sloppy. Make a logger.
-        //Extracting the userName value
+        //Extracting relevant values from previous activity -- CLIENT and SERVER
         userName = getIntent().getStringExtra("EXTRA_USER_NAME")
-        quizName = getIntent().getStringExtra("EXTRA_QUIZ_NAME")
 
-        val i = intent
-        listOfQuizQuestions = i.getSerializableExtra("EXTRA_LIST_OF_QUIZ_QUESTIONS") as ArrayList<MultipleChoiceQuestion1>
-
-        println("size of received list in the MainActivity is: " + listOfQuizQuestions!!.size)
         println("username: " + userName)
         println("quizName: " + quizName)
+        println("userType: " + userType)
+
 
         //specify the userType in the UI's label
         var userMetadataTextView: TextView = findViewById(R.id.userMetadata);
@@ -97,18 +124,15 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         val create_question_button = findViewById<Button>(R.id.create_question)
         val activateDummyQuestionButton = findViewById<Button>(R.id.activateDummyQuestion)
         networkInformation = NetworkInformation.NetworkInfoFactory.getNetworkInfo(this)
+        val activateQuizButton = findViewById<Button>(R.id.activateQuizButton)
+        activateNextQuestionButton = findViewById<Button>(R.id.activateNextQuestionButton)
 
         val dataaccess = QuizDatabase.getDatabase(this)
         val answerQuestionButton = findViewById<Button>(R.id.answer_active)
         val responseID = UUID.randomUUID().toString()
-        val browseQuestionsButton = findViewById<Button>(R.id.browse_questions)
+        var browseQuestionsButton = findViewById<Button>(R.id.browse_questions)
         repository = RepositoryImpl(dataaccess.questionDao(), dataaccess.responseDao(), dataaccess.userDao(), dataaccess.quizDao())
 
-        sessionIdTextView = findViewById<TextView>(R.id.mainActivity_sessionIdTextView)
-
-        //TODO Generating a random int as sessionId.
-        val randomSessionId = (Math.random() * 9000).toInt() + 1000
-        sessionIdTextView?.setText("Session ID: " + randomSessionId.toString())
 
         Timer("Heartbeat", false).schedule(100, 30000){
             emitHeartBeat()
@@ -120,6 +144,30 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             val intent = Intent(this, BrowseQuestions::class.java)
             startActivityForResult(intent, 3)
         }
+
+
+
+
+
+
+
+
+        activateQuizButton.setOnClickListener{
+            //Ony the server has the power to change the active question
+            if(UserType.SERVER.equals(userType)) { //guarding against null userType values
+                println("PERMISSION TO ACTIVATE QUESTION GRANTED, " + userName)
+                activateQuestion(listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX))
+                CURRENT_QUESTION_INDEX++
+            } else {
+                println("YOU DONT HAVE PERMISSION TO ACTIVATE A NEW QUESTION, " + userName)
+            }
+        }
+
+
+
+
+
+
 
         answerQuestionButton.setOnClickListener{
             Thread(Runnable {
@@ -198,8 +246,8 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 UUID.randomUUID(), UUID.randomUUID(), prompt, answerChoices, answer
             )
 
-            //Ony the instructor has the power to change the active question
-            if(UserType.INSTRUCTOR.equals(userType)) { //guarding against null userType values
+            //Ony the server has the power to change the active question
+            if(UserType.SERVER.equals(userType)) { //guarding against null userType values
                 println("PERMISSION TO ACTIVATE QUESTION GRANTED, " + userName)
                 activateQuestion("dummyUsername", dummyQuestion)
             } else {
@@ -207,7 +255,24 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             }
 
         }
+    }
 
+    private fun hideServerButtons() {
+        activateNextQuestionButton?.setVisibility(View.GONE)
+    }
+
+    private fun showServerButtons() {
+        activateNextQuestionButton?.setVisibility(View.VISIBLE)
+    }
+
+    private fun activateQuestion(questionToActivate: MultipleChoiceQuestion1) {
+        //Ony the server has the power to change the active question
+        if(UserType.SERVER.equals(userType)) { //guarding against null userType values
+            println("PERMISSION TO ACTIVATE QUESTION GRANTED, " + userName)
+            userName?.let { activateQuestion(it, questionToActivate) }
+        } else {
+            println("YOU DONT HAVE PERMISSION TO ACTIVATE A NEW QUESTION, " + userName)
+        }
     }
 
 

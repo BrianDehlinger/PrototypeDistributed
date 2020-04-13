@@ -126,11 +126,7 @@ public class WelcomeActivity extends AppCompatActivity {
                      */
                     if(isJoinSessionButtonSelected) {
 
-                        /**
-                         * TODO: On the line below, 'MainActivity.class' needs to be replaced by a
-                         *  soon-to-be created Activity for joining a new session.
-                         */
-                        nextActivity = new Intent(WelcomeActivity.this, MainActivity.class);
+                        nextActivity = new Intent(WelcomeActivity.this, JoinQuizActivity.class);
 
                         //Passing in "extra" data to the mainActivity for use by the MainActivity
                         nextActivity.putExtra("EXTRA_USER_NAME", userName);

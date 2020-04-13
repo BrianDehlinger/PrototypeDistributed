@@ -76,4 +76,18 @@
         android:layout_below="@id/activateDummyQuestion"
         />
 
+    <Button
+        android:id="@+id/activateQuizButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/currentActiveQuestionTextView"
+        android:text="Activate Quiz"/>
+
+    <Button
+        android:id="@+id/activateNextQuestionButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/activateQuizButton"
+        android:text="Activate next question"/>
+
 </RelativeLayout>
