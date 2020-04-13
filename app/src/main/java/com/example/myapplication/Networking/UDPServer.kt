@@ -1,9 +1,5 @@
 package com.example.myapplication.Networking
 
-import android.content.Context
-import java.io.BufferedReader
-import java.io.InputStream
-import java.io.InputStreamReader
 import java.lang.Exception
 import java.net.*
 
@@ -13,7 +9,7 @@ import java.net.*
 
 class UDPServer: Server{
 
-    private val listeners = mutableListOf<UDPListener>()
+    private val listeners = mutableListOf<DataListener>()
 
     // Can use composition by setting this to var to be more flexible.
     private var port = 6000
@@ -35,7 +31,7 @@ class UDPServer: Server{
                 println("Packet received!")
                 for (listener in listeners){
                     val stringOfData = String(packet.data, 0, packet.length)
-                    listener.onUDP(stringOfData)
+                    listener.onData(stringOfData)
                 }
             }
         }
@@ -50,11 +46,11 @@ class UDPServer: Server{
         listenForPackets(port)
     }
 
-    override fun addListener(listener: UDPListener){
+    override fun addListener(listener: DataListener){
         listeners.add(listener)
     }
 
-    override fun removeListener(listener: UDPListener){
+    override fun removeListener(listener: DataListener){
         listeners.remove(listener)
     }
 

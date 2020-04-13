@@ -1,18 +1,16 @@
 package com.example.myapplication.Networking
 
 import java.io.BufferedReader
-import java.io.DataOutputStream
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.lang.Exception
 import java.net.ServerSocket
 import java.net.Socket
-import java.nio.Buffer
 import java.util.concurrent.ExecutorService
 
 class TCPServer : Server{
 
-    private val listeners = mutableListOf<UDPListener>()
+    private val listeners = mutableListOf<DataListener>()
     private var port = 6000
     var serverSocket: ServerSocket? = null;
     var socket: Socket? = null
@@ -23,6 +21,7 @@ class TCPServer : Server{
     }
 
     override fun listenForPackets(port: Int) {
+        println(port)
         serverSocket = ServerSocket(port)
         while (true) {
             try {
@@ -64,12 +63,9 @@ class TCPServer : Server{
                 println(e.toString())
                 e.printStackTrace()
             }
-            finally{
-                clientSocket.close()
-            }
             for (listener in listeners) {
                 if (data != null){
-                    listener.onUDP(data)
+                    listener.onData(data)
                 }
             }
         }
@@ -80,11 +76,11 @@ class TCPServer : Server{
         listenForPackets(port)
     }
 
-    override fun addListener(listener: UDPListener){
+    override fun addListener(listener: DataListener){
         listeners.add(listener)
     }
 
-    override fun removeListener(listener: UDPListener){
+    override fun removeListener(listener: DataListener){
         listeners.remove(listener)
     }
 

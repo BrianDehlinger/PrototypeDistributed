@@ -24,7 +24,6 @@ class TCPClient: Client{
         }
         finally {
             outputStream?.close()
-            outputSocket?.close()
         }
     }
 

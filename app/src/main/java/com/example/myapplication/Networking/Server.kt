@@ -1,16 +1,12 @@
 package com.example.myapplication.Networking
 
-import java.lang.Exception
-import java.net.DatagramPacket
-import java.net.DatagramSocket
-
 interface Server: Runnable{
 
     fun listenForPackets(port: Int)
 
-    fun addListener(listener: UDPListener)
+    fun addListener(listener: DataListener)
 
-    fun removeListener(listener: UDPListener)
+    fun removeListener(listener: DataListener)
 
     fun clearListeners()
 }

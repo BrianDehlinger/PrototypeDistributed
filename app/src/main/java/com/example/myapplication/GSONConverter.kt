@@ -5,6 +5,7 @@ import com.example.myapplication.Models.HeartBeat
 import com.example.myapplication.Models.MultipleChoiceQuestion
 import com.example.myapplication.Models.MultipleChoiceResponse
 import com.example.myapplication.Models.User
+import com.example.myapplication.Networking.JoinRequest
 import com.example.myapplication.Networking.NetworkInformation
 import com.google.gson.Gson
 
@@ -19,6 +20,7 @@ class GSONConverter(val gson: Gson = Gson()){
             "hb" -> return gson.fromJson(json_string, HeartBeat::class.java)
             "failure_detected" -> return gson.fromJson(json_string, NetworkInformation::class.java)
             "network_info" -> return gson.fromJson(json_string, NetworkInformation::class.java)
+            "join_request" -> return gson.fromJson(json_string, JoinRequest::class.java)
         }
         return returnValue
     }

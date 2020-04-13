@@ -4,19 +4,27 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Network
 import android.os.Bundle
+import android.widget.Button
+import android.widget.ImageView
+import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import android.widget.*
 import com.example.myapplication.DAOs.Cache
 import com.example.myapplication.DAOs.QuizDatabase
 import com.example.myapplication.DAOs.RepositoryImpl
 import com.example.myapplication.Models.*
 import com.example.myapplication.Networking.*
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.google.zxing.WriterException
 import com.google.zxing.integration.android.IntentIntegrator
-import kotlinx.coroutines.*
-import java.lang.Runnable
+import kotlinx.android.synthetic.main.activity_user_identification.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -24,33 +32,21 @@ import kotlin.concurrent.schedule
 
 
 // https://demonuts.com/kotlin-generate-qr-code/ was used for the basis of  QRCode generation and used pretty much all of the code for the QR methods. Great thanks to the authors!
-class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
+class MainActivity : AppCompatActivity() {
+    lateinit var session: Session
+    var userName: String? = null
     val converter = GSONConverter()
     val gson = Gson()
-    val contextReference: Context = this
-
-    // If in a state of debugging
     val debug = true
-    val clientOne = NetworkInformation("10.0.2.2", 5000, "client")
-    //val clientThree = NetworkInformation("10.0.2.2", 5026, "client")
+    val contextReference: Context = this
+    val debugProviders: DebugProviders = DebugProviders(this)
 
 
-
-    // if the client is a Ringleader.
-    var isRingLeader = false
-
-    var currentServer: NetworkInformation? = null
-
-    // The current information of the network. (What's my IP, what's my port, what's my server type)
-    var networkInformation: NetworkInformation? = null
-
+    lateinit var ringLeader: NetworkInformation
+    lateinit var otherReplicas: MutableList<NetworkInformation>
 
     // The current active question if any
     var activeQuestion: MultipleChoiceQuestion? = null
-
-
-    // Other server replicas
-    val peerMonitor = ClientMonitor(arrayListOf(clientOne))
 
     // Thread pools
     val messageSenders: ExecutorService = Executors.newFixedThreadPool(15)
@@ -64,13 +60,27 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val clientTwo = NetworkInformation("10.0.2.2", 5023, "server")
-        peerMonitor.addClient(clientTwo)
         setContentView(R.layout.activity_main)
 
         //TODO: print statements are sloppy. Make a logger.
         var typeOfUser = intent.getSerializableExtra("EXTRA_USER_TYPE").toString()
-        var userName = getIntent().getStringExtra("EXTRA_USER_NAME")
+        var userName = intent.getStringExtra("EXTRA_USER_NAME")
+
+        // BRIAN ADD
+        var isReplica = intent.getBooleanExtra("IS_REPLICA", false)
+        var ringLeaderJson = intent.getStringExtra("RING_LEADER")
+        var otherReplicasJSON = intent.getStringExtra("OTHER_REPLICAS")
+        var peerId = getIntent().getIntExtra("PEER_ID", 0)
+        if (debug == true){
+            ringLeaderJson = gson.toJson(debugProviders.provideRingLeader())
+            isReplica = debugProviders.provideIsReplica(this)
+            otherReplicasJSON = gson.toJson(debugProviders.provideOtherReplicas(this))
+            peerId = debugProviders.providePeerId(this)
+        }
+        ringLeader = gson.fromJson(ringLeaderJson, NetworkInformation::class.java)
+        val customType = object : TypeToken<MutableList<NetworkInformation>>() {}.type
+        otherReplicas = gson.fromJson(otherReplicasJSON, customType)
+
         println("username: " + userName)
         println("userType: " + typeOfUser)
         //specify the userType in the UI's label
@@ -153,31 +163,6 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             startActivityForResult(intent, 1)
         }
 
-
-        /* We don't want to block the UI thread */
-        val server = TCPServer()
-        server.addListener(this)
-        server.threadExService = messageSenders
-        val TCPDataListener = Thread(server)
-        networkInformation = NetworkInformation.getNetworkInfo(this)
-
-        if (debug == true) {
-            if (networkInformation!!.ip == "10.0.2.18") {
-                println("HERE")
-                isRingLeader = true
-                server.setPort(5024)
-                networkInformation!!.port = 5024
-                networkInformation!!.peer_type = "server"
-            }
-        }
-        if (isRingLeader) {
-            if (networkInformation!!.ip == "10.0.2.16") {
-                server.setPort(6000)
-            }
-            networkInformation!!.peer_type = "server"
-        }
-        messageSenders.execute(TCPDataListener)
-
         val dataaccess = QuizDatabase.getDatabase(this)
         repository = RepositoryImpl(
             dataaccess.questionDao(),
@@ -186,170 +171,42 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             dataaccess.quizDao()
         )
 
-        // Timed heartbeat
-        Timer("Heartbeat", false).schedule(100, 1000) {
-            emitHeartBeat()
-        }
-
-
-    }
-
-    override fun onUDP(data: String) {
-        CoroutineScope(Dispatchers.IO).launch {
-            println("DATA is $data")
-            // Debug here. It prints out all questions in the database.
-            /*
-            runOnUiThread{
-                Toast.makeText(applicationContext, data, Toast.LENGTH_SHORT).show()
+        // Session is created based on previous activity. This could be refactored to a factory method.
+        if (typeOfUser == "INSTRUCTOR") {
+            println("HERE")
+            session = ReplicaSession(contextReference,
+                ringLeader,
+                peerId = peerId,
+                threadPool = messageSenders,
+                sessionReplicas = otherReplicas
+            ).also{
+                it.startHB(contextReference)
+                it.isRingLeader = true
             }
-             */
-            val type = gson.fromJson(data, Map::class.java)["type"] as String
-            val message = converter.convertToClass(type, data)
-            if (type == "multiple_choice_question") {
-                activeQuestion = message as MultipleChoiceQuestion
-                println("Activating a question!")
-            }
-            if (type == "hb") {
-                onHeartBeat(message as HeartBeat)
-                runOnUiThread {
-                    Toast.makeText(applicationContext, peerMonitor.toString(), Toast.LENGTH_SHORT)
-                        .show()
+        } else if (typeOfUser == "STUDENT") {
+            if (isReplica) {
+                session = ReplicaSession(
+                    contextReference,
+                    ringLeader,
+                    peerId = peerId,
+                    threadPool = messageSenders,
+                    sessionReplicas = otherReplicas
+                ).also {
+                    it.startHB(contextReference)
+                    println("STARTING HB")
                 }
-            }
-            if (type == "failure_detected") {
-                println("failure!!!!")
-                val failedClient = message as NetworkInformation
-                println(failedClient)
-                val failure = peerMonitor.getClient(failedClient)
-                println("FAILURE IS $failure")
-                peerMonitor.getClient(failedClient).also {
-                    if (failedClient.port == NetworkInformation.getNetworkInfo(
-                            contextReference,
-                            debugUse = true
-                        ).port
-                    ) {
-                        it!!.other_client_failure_count.getAndIncrement()
-                    }
-                }
-                if (type == "restored_connection") {
-                    val restoredClient = message as NetworkInformation
-                    peerMonitor.getClient(restoredClient).also {
-                        it!!.other_client_failure_count.getAndDecrement()
-                    }
-                }
+            } else {
+                session =
+                    Session(
+                        contextReference,
+                        ringLeader,
+                        threadPool = messageSenders,
+                        sessionReplicas = otherReplicas
+                    )
             }
         }
     }
 
-    // This is the scheduled function. Ideally this can also be packaged with the onHeartBeat etc.
-    private fun emitHeartBeat() {
-        println("Emitting heartbeat")
-        val clients = peerMonitor.getClients()
-        for (client in clients) {
-            var portToSend = client.port
-            val status = peerMonitor.getClient(client)
-            println("STATUS: $status")
-            if (status?.other_client_failure_count!!.get() >= peerMonitor.getClients().size / 2) {
-                runOnUiThread {
-                    Toast.makeText(
-                        applicationContext,
-                        "Failover initiated for $client",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-
-            val heartbeat = HeartBeat(
-                ip = networkInformation!!.ip,
-                port = NetworkInformation.getNetworkInfo(this, debugUse = true)!!.port.toString(),
-                peer_type = networkInformation!!.peer_type
-            )
-            CoroutineScope(Dispatchers.IO).launch {
-                println("SENDING HEARTBEAT")
-                println(gson.toJson(heartbeat))
-                sendMessage(gson.toJson(heartbeat), client.ip, portToSend)
-            }
-
-
-            if (status?.last_received!!.get() == 2) {
-                status.color = "yellow"
-            } else if (status.last_received.get() > 2) {
-                if (status.color != "red") {
-                    status.color = "red"
-                    val data = hashMapOf<String, String>()
-                    data.put("type", "failure_detected")
-                    data.put("ip", client.ip)
-                    data.put("port", client.port.toString())
-                    data.put("peer_type", client.peer_type)
-                    val message = gson.toJson(data)
-                    for (clientMonitored in clients) {
-                        println("Client is $clientMonitored")
-                        CoroutineScope(Dispatchers.IO).launch {
-                            TCPClient().sendMessage(
-                                message,
-                                clientMonitored.ip,
-                                clientMonitored.port
-                            )
-                        }
-                    }
-                }
-
-
-                // Show there was a failure
-                runOnUiThread {
-                    Toast.makeText(
-                        applicationContext,
-                        "Failure detected at $client",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-            status.last_received.getAndIncrement()
-            println(status)
-        }
-    }
-
-    // This is the listener function. It can be packaged together with the clientMonitor functionality.
-    override fun onHeartBeat(heartBeat: HeartBeat) {
-        println("Heartbeat $heartBeat")
-        var ip = heartBeat.ip
-        var port = heartBeat.port.toInt()
-        val peerType = heartBeat.peer_type
-        if (debug) {
-            ip = "10.0.2.2"
-            port = 5000
-            if (heartBeat.ip == "10.0.2.18") {
-                port = 5023
-            }
-        }
-        val client = peerMonitor.getClient(NetworkInformation(ip, port, peerType))
-        if (client != null) {
-            client.color = "green"
-            client.last_received.getAndSet(0)
-            if (client.other_client_failure_count.toInt() > 0) {
-                val data = hashMapOf<String, String>()
-                for (clientTwo in peerMonitor.getClients()) {
-                    println("RESTORED")
-                    data.put("type", "connection_restored")
-                    data.put("ip", heartBeat.ip)
-                    data.put("port", heartBeat.port)
-                    data.put("peer_type", heartBeat.peer_type)
-                    CoroutineScope(Dispatchers.IO).launch {
-                        sendMessage(gson.toJson(data), clientTwo.ip, clientTwo.port)
-                    }
-                }
-            }
-        } else {
-            println("$ip ")
-            println("CLIENT $ip, $port, $peerType IS NULL")
-        }
-    }
-
-    suspend fun sendMessage(json: String, ip: String, port: Int) {
-        withContext(Dispatchers.IO) {
-            TCPClient().sendMessage(json, ip, port)
-        }
-    }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
@@ -370,14 +227,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 }
                 val json = gson.toJson(jsonTree)
                 questionRepo.insertResponse(response)
-                for (client in peerMonitor.getClients()) {
-                    // Here we will probably want to do a higher level suspend where we send the message and wait for a result. That means this functionality should be wrapped in a a suspend call.
-                    // Then -> if result doesn't send, send it to another after predetermined number of times. We will try this with sending something first to 5026. Then that doesn't work send to another server.
-
-                    messageSenders.execute(Thread(Runnable {
-                        TCPClient().sendMessage(json, client.ip, client.port)
-                    }))
-                }
+                session.sendMessage(json, ringLeader)
             }
         }
         if (requestCode == 3) {
@@ -391,29 +241,36 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                     it.asJsonObject.addProperty("type", "multiple_choice_question")
                 }
                 val json = gson.toJson(jsonTree)
-
-                for (client in peerMonitor.getClients()) {
-                    messageSenders.execute(Thread(Runnable {
-                        TCPClient().sendMessage(json, client.ip, client.port)
-                    }))
-                }
+                session.broadcast(json)
             }
-        }
-        if (requestCode == 49374) {
-            val scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
-            val data = scanResult.contents
-            if (data != null) {
-                val type = gson.fromJson(data, Map::class.java)["type"] as String
-                if (type == "network_info") {
-                    val message = converter.convertToClass(type, data)
-                    if (message!!.javaClass.name == NetworkInformation::class.java.name) {
-                        currentServer = message as NetworkInformation
-                        println("$message is now the current server!")
-                        peerMonitor.addClient(message)
+            if (requestCode == 49374) {
+                val scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
+                val data = scanResult.contents
+                if (data != null) {
+                    val type = gson.fromJson(data, Map::class.java)["type"] as String
+                    if (type == "network_info") {
+                        val ringLeader = converter.convertToClass(type, data)
+                        if (ringLeader!!.javaClass.name == NetworkInformation::class.java.name) {
+                            session.RingLeader = ringLeader as NetworkInformation
+                            session.sendMessage(
+                                message = gson.toJson(
+                                    JoinRequest(
+                                        information = NetworkInformation.getNetworkInfo(
+                                            this
+                                        ), peer_type = "client"
+                                    )
+                                ), recipient = ringLeader
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+
+    override fun onDestroy(){
+        super.onDestroy()
+        session
     }
 }
 
