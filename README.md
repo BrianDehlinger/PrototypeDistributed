@@ -134,4 +134,8 @@ If the IP addresss you chose for this emulator is 10.0.2.17 the port should be 6
 redir add tcp:5000:5000
 ```
 
-Repeat the process for 
+## Configuring Camera Access
+
+1) Open AVD manager in Android studio and click the pencil icon to edit the device. Click show advanced settings. Scroll to the camera section and choose your webcam for the Back Camera. 
+2) On the device go to settings. Apps and Notifications. Permission Manager. Camera. Allow access on your device for the Application. You may also find this in the Apps and Notifications section on the Recently Opened apps. You can enable camera access there as well.
+
