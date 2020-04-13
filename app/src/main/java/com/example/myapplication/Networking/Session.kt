@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Paint
 import android.media.Ringtone
+import android.net.Network
+import android.os.Debug
 import com.example.myapplication.GSONConverter
 import com.example.myapplication.Models.MultipleChoiceQuestion
 import com.example.myapplication.MainActivity
@@ -18,7 +20,7 @@ import kotlin.concurrent.schedule
 import kotlin.reflect.jvm.internal.impl.types.checker.NewCapturedType
 
 
-open class Session(context: Context, var RingLeader: NetworkInformation?, protected var sessionReplicas: MutableCollection<NetworkInformation> = arrayListOf(), val threadPool: ExecutorService): DataListener {
+open class Session(val context: Context, var RingLeader: NetworkInformation?, protected var sessionReplicas: MutableCollection<NetworkInformation> = arrayListOf(), val threadPool: ExecutorService): DataListener {
 
     protected val gson = Gson()
     protected val gsonConverter = GSONConverter()
@@ -77,6 +79,8 @@ open class Session(context: Context, var RingLeader: NetworkInformation?, protec
 
     protected open inner class MessageHandler {
 
+        val parentContext: Context = context
+
         open fun handleMessage(message: String) {
             println("Message is $message")
             val type = gson.fromJson(message, Map::class.java)["type"] as String
@@ -99,6 +103,17 @@ open class Session(context: Context, var RingLeader: NetworkInformation?, protec
                 "connection_restored" -> {
                     println("Connection restored")
                 }
+                "new_replica" -> {
+                    val replica = instantiatedObject as NewReplica
+                    addReplica(replica.information)
+                }
+                "sync_replicas" -> {
+                    val replicas = instantiatedObject as List<NetworkInformation>
+                    val mutableReplicas = replicas.toMutableList()
+                    val thisClient = DebugProviders(context).provideNetworkInformation(context)
+                    mutableReplicas.remove(thisClient)
+                    sessionReplicas = mutableReplicas
+                }
             }
         }
     }
@@ -118,6 +133,8 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
     override fun addReplica(replica: NetworkInformation) {
         super.addReplica(replica)
         peerMonitor.addClient(replica)
+        val newReplicas = sessionReplicas.toList()
+        broadcast(gson.toJson(SyncReplicas(newReplicas)))
     }
     private fun updateReplicaStatus(replica: NetworkInformation) {
         val replicaMonitor = peerMonitor.getClient(replica)
@@ -270,11 +287,24 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
                             clients.add(client)
                         }
                         "replica" -> {
-                            sessionReplicas.add(client)
+                            addReplica(replica = client)
                         }
                     }
                 }
+                "sync_replicas" -> {
+                    val replicas = instantiatedObject as List<NetworkInformation>
+                    val mutableReplicas = replicas.toMutableList()
+                    val thisClient = DebugProviders(context).provideNetworkInformation(context)
+                    mutableReplicas.remove(thisClient)
+                    sessionReplicas = mutableReplicas
+                }
+
             }
         }
     }
 }
+
+data class SyncReplicas(
+    val replicas: List<NetworkInformation>,
+    val type: String = "sync_replicas"
+)

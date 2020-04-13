@@ -237,21 +237,23 @@ class MainActivity : AppCompatActivity() {
                     session.activateQuestion(questionToActivate)
                 }
             }
+        }
             if (requestCode == 49374) {
                 val scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
                 val data = scanResult.contents
+                println(data)
                 if (data != null) {
                     val type = gson.fromJson(data, Map::class.java)["type"] as String
                     if (type == "network_info") {
                         val ringLeader = converter.convertToClass(type, data)
+                        println(ringLeader)
                         if (ringLeader!!.javaClass.name == NetworkInformation::class.java.name) {
+                            println("HERE")
                             session.RingLeader = ringLeader as NetworkInformation
                             session.sendMessage(
                                 message = gson.toJson(
                                     JoinRequest(
-                                        information = NetworkInformation.getNetworkInfo(
-                                            this
-                                        ), peer_type = "client"
+                                        information = DebugProviders(this).provideNetworkInformation(this), peer_type = "replica"
                                     )
                                 ), recipient = ringLeader
                             )
@@ -260,7 +262,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-    }
 
     override fun onDestroy(){
         super.onDestroy()
