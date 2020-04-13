@@ -26,6 +26,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.*
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.concurrent.schedule
@@ -177,7 +178,7 @@ class MainActivity : AppCompatActivity() {
                 ringLeader,
                 peerId = peerId,
                 threadPool = messageSenders,
-                sessionReplicas = otherReplicas
+                sessionReplicas = CopyOnWriteArrayList( otherReplicas)
             ).also{
                 it.startHB(contextReference)
                 it.isRingLeader = true
@@ -189,7 +190,7 @@ class MainActivity : AppCompatActivity() {
                     ringLeader,
                     peerId = peerId,
                     threadPool = messageSenders,
-                    sessionReplicas = otherReplicas
+                    sessionReplicas = CopyOnWriteArrayList(otherReplicas)
                 ).also {
                     it.startHB(contextReference)
                     println("STARTING HB")
@@ -200,7 +201,7 @@ class MainActivity : AppCompatActivity() {
                         contextReference,
                         ringLeader,
                         threadPool = messageSenders,
-                        sessionReplicas = otherReplicas
+                        sessionReplicas = CopyOnWriteArrayList(otherReplicas)
                     )
             }
         }
@@ -265,7 +266,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy(){
         super.onDestroy()
-        session
+        session.close()
     }
 }
 

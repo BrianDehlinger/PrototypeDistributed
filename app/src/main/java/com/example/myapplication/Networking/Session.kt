@@ -15,12 +15,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.*
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.ExecutorService
 import kotlin.concurrent.schedule
 import kotlin.reflect.jvm.internal.impl.types.checker.NewCapturedType
 
 
-open class Session(val context: Context, var RingLeader: NetworkInformation?, protected var sessionReplicas: MutableCollection<NetworkInformation> = arrayListOf(), val threadPool: ExecutorService): DataListener {
+open class Session(val context: Context, var RingLeader: NetworkInformation?, protected var sessionReplicas: CopyOnWriteArrayList<NetworkInformation> = CopyOnWriteArrayList(), val threadPool: ExecutorService): DataListener {
 
     protected val gson = Gson()
     protected val gsonConverter = GSONConverter()
@@ -52,7 +53,9 @@ open class Session(val context: Context, var RingLeader: NetworkInformation?, pr
     }
 
     open fun addReplica(client: NetworkInformation){
-        sessionReplicas.add(client)
+        synchronized(this){
+            sessionReplicas.add(client)
+        }
     }
 
     override fun onData(data: String) {
@@ -108,18 +111,20 @@ open class Session(val context: Context, var RingLeader: NetworkInformation?, pr
                     addReplica(replica.information)
                 }
                 "sync_replicas" -> {
-                    val replicas = instantiatedObject as List<NetworkInformation>
-                    val mutableReplicas = replicas.toMutableList()
-                    val thisClient = DebugProviders(context).provideNetworkInformation(context)
-                    mutableReplicas.remove(thisClient)
-                    sessionReplicas = mutableReplicas
+                    synchronized(this) {
+                        val replicas = instantiatedObject as List<NetworkInformation>
+                        val mutableReplicas = replicas.toMutableList()
+                        val thisClient = DebugProviders(context).provideNetworkInformation(context)
+                        mutableReplicas.remove(thisClient)
+                        sessionReplicas = CopyOnWriteArrayList(mutableReplicas)
+                    }
                 }
             }
         }
     }
 }
 
-class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionReplicas: MutableCollection<NetworkInformation> = arrayListOf(), threadPool: ExecutorService, var clients: MutableCollection<NetworkInformation> = arrayListOf(), val peerId: Int): Session(context, RingLeader, sessionReplicas, threadPool){
+class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionReplicas: CopyOnWriteArrayList<NetworkInformation> = CopyOnWriteArrayList(), threadPool: ExecutorService, var clients: MutableCollection<NetworkInformation> = arrayListOf(), val peerId: Int): Session(context, RingLeader, sessionReplicas, threadPool){
 
     override val messageHandler = ReplicaMessageHandler()
     private val peerMonitor: PeerMonitor = PeerMonitor().also {
@@ -131,10 +136,12 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
 
 
     override fun addReplica(replica: NetworkInformation) {
-        super.addReplica(replica)
-        peerMonitor.addClient(replica)
-        val newReplicas = sessionReplicas.toList()
-        broadcast(gson.toJson(SyncReplicas(newReplicas)))
+        synchronized(this) {
+            super.addReplica(replica)
+            peerMonitor.addClient(replica)
+            val newReplicas = sessionReplicas.toList()
+            broadcast(gson.toJson(SyncReplicas(newReplicas)))
+        }
     }
     private fun updateReplicaStatus(replica: NetworkInformation) {
         val replicaMonitor = peerMonitor.getClient(replica)
@@ -235,10 +242,7 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
 
     override fun activateQuestion(question: MultipleChoiceQuestion) {
         if (isRingLeader) {
-            val jsonTree = gson.toJsonTree(question).also {
-                it.asJsonObject.addProperty("type", "multiple_choice_question")
-            }
-            val json = gson.toJson(jsonTree)
+            val json = gson.toJson(question)
             broadcast(json)
         }
         super.activateQuestion(question)
@@ -292,11 +296,13 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
                     }
                 }
                 "sync_replicas" -> {
-                    val replicas = instantiatedObject as List<NetworkInformation>
-                    val mutableReplicas = replicas.toMutableList()
-                    val thisClient = DebugProviders(context).provideNetworkInformation(context)
-                    mutableReplicas.remove(thisClient)
-                    sessionReplicas = mutableReplicas
+                    synchronized(this) {
+                        val replicas = instantiatedObject as List<NetworkInformation>
+                        val mutableReplicas = replicas.toMutableList()
+                        val thisClient = DebugProviders(context).provideNetworkInformation(context)
+                        mutableReplicas.remove(thisClient)
+                        sessionReplicas = CopyOnWriteArrayList(mutableReplicas)
+                    }
                 }
 
             }
