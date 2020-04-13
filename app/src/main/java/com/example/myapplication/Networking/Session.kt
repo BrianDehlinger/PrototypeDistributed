@@ -31,6 +31,8 @@ open class Session(context: Context, var RingLeader: NetworkInformation?, protec
         it.setPort(portToSet)
         it.threadExService = threadPool
     }
+
+    var isRingLeader = false
     protected val listeningServerThread = Thread(networkService).also{
         it.start()
     }
@@ -79,7 +81,6 @@ open class Session(context: Context, var RingLeader: NetworkInformation?, protec
             val instantiatedObject = gsonConverter.convertToClass(type, message)
             when (type){
                 "multiple_choice_question" -> {
-                    println("ACTIVATING A QUESTION")
                     val activeQuestion = instantiatedObject as MultipleChoiceQuestion
                     activateQuestion(activeQuestion)
                 }
@@ -110,7 +111,6 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
         }
     }
     private val bully = Bully(this)
-    var isRingLeader = false
 
 
     override fun addReplica(replica: NetworkInformation) {
@@ -192,7 +192,7 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
 
     fun sendToReplicas(message: String){
         for (replica in sessionReplicas) {
-            sendMessage(gson.toJson(message), replica)
+            sendMessage(message, replica)
         }
     }
 

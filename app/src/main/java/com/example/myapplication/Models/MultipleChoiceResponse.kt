@@ -16,5 +16,8 @@ data class MultipleChoiceResponse(
     val parent_question_id: String,
     val answer: String,
     val user_id: String,
-    val quiz_id: String
-) : Parcelable
+    val quiz_id: String,
+    @Ignore val type: String = "multiple_choice_response"
+) : Parcelable {
+    constructor(response_id: String, parent_question_id: String, answer: String, user_id: String, quiz_id: String) : this(response_id, parent_question_id, answer, user_id, quiz_id, "multiple_choice_response")
+}

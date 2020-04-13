@@ -15,5 +15,8 @@ data class MultipleChoiceQuestion (
     val answer: String,
     val choices: List<String>,
     val prompt: String,
-    val quiz_id: String
-) : Parcelable
+    val quiz_id: String,
+    @Ignore val type: String = "multiple_choice_question"
+) : Parcelable{
+    constructor(question_id: String, answer: String, choices: List<String>, prompt: String, quiz_id: String): this(question_id, answer, choices, prompt, quiz_id, type="multiple_choice_question")
+}

@@ -222,12 +222,8 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == 2) {
             if (resultCode == Activity.RESULT_OK) {
                 val response = data?.getParcelableExtra("response") as MultipleChoiceResponse
-                val jsonTree = gson.toJsonTree(response).also {
-                    it.asJsonObject.addProperty("type", "multiple_choice_response")
-                }
-                val json = gson.toJson(jsonTree)
                 questionRepo.insertResponse(response)
-                session.sendMessage(json, ringLeader)
+                session.sendMessage(gson.toJson(response), ringLeader)
             }
         }
         if (requestCode == 3) {
@@ -237,11 +233,10 @@ class MainActivity : AppCompatActivity() {
             ) {
                 val questionToActivate =
                     data?.getParcelableExtra("question") as MultipleChoiceQuestion
-                val jsonTree = gson.toJsonTree(questionToActivate).also {
-                    it.asJsonObject.addProperty("type", "multiple_choice_question")
+                println(gson.toJson(questionToActivate))
+                if (session.isRingLeader) {
+                    session.broadcast(gson.toJson(questionToActivate))
                 }
-                val json = gson.toJson(jsonTree)
-                session.broadcast(json)
             }
             if (requestCode == 49374) {
                 val scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)

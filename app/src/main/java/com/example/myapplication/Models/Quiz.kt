@@ -13,7 +13,8 @@ import kotlinx.serialization.Serializable
 data class Quiz(
     @PrimaryKey val quiz_id: String,
     val quiz_name : String,
-    @Ignore var questions: List<MultipleChoiceQuestion> = emptyList()
+    @Ignore var questions: List<MultipleChoiceQuestion> = emptyList(),
+    @Ignore var type: String = "quiz"
 ): Parcelable{
     constructor(quiz_id: String, quiz_name: String) : this(quiz_id, quiz_name, arrayListOf<MultipleChoiceQuestion>())
 }
