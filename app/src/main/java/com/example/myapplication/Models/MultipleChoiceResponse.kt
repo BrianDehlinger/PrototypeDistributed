@@ -2,6 +2,7 @@ package com.example.myapplication.Models
 
 import android.os.Parcelable
 import androidx.room.*
+import com.google.gson.Gson
 import kotlinx.android.parcel.Parcelize
 import kotlinx.serialization.SerialId
 import kotlinx.serialization.Serializable
@@ -17,4 +18,14 @@ data class MultipleChoiceResponse(
     val answer: String,
     val user_id: String,
     val quiz_id: String
-) : Parcelable
+) : Parcelable {
+    var type: String = "multiple_choice_response"
+
+    /**
+     * Generates a JSON-formatted string.  Usefor for serialization and deserialization.
+     */
+    override fun toString(): String{
+        val gson = Gson()
+        return gson.toJson(this);
+    }
+}

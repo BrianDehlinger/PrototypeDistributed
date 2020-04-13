@@ -5,10 +5,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.View
-import android.widget.Button
-import android.widget.ImageView
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.example.myapplication.DAOs.Cache
 import com.example.myapplication.DAOs.QuizDatabase
@@ -36,6 +33,9 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
     private var imageview: ImageView? = null
     private var generateConnectionQrButton: Button? = null
     private var activateNextQuestionButton: Button? = null
+
+    var currentQuestionPromptTextView: TextView? = null
+    var currentQuestionChoicesTextView: TextView? = null
 
     private var sessionIdTextView: TextView? = null
     private var activateQuizButton: Button? = null
@@ -121,17 +121,33 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
         imageview = findViewById(R.id.iv)
         generateConnectionQrButton = findViewById(R.id.generate_connection_qr_button)
-        val create_question_button = findViewById<Button>(R.id.create_question)
-        val activateDummyQuestionButton = findViewById<Button>(R.id.activateDummyQuestion)
         networkInformation = NetworkInformation.NetworkInfoFactory.getNetworkInfo(this)
         val activateQuizButton = findViewById<Button>(R.id.activateQuizButton)
+        val submitActiveQuestionAnswerButton = findViewById<Button>(R.id.mainActivity_submitAnswerButton)
         activateNextQuestionButton = findViewById<Button>(R.id.activateNextQuestionButton)
 
         val dataaccess = QuizDatabase.getDatabase(this)
-        val answerQuestionButton = findViewById<Button>(R.id.answer_active)
         val responseID = UUID.randomUUID().toString()
         var browseQuestionsButton = findViewById<Button>(R.id.browse_questions)
         repository = RepositoryImpl(dataaccess.questionDao(), dataaccess.responseDao(), dataaccess.userDao(), dataaccess.quizDao())
+
+
+
+
+
+
+
+
+
+
+
+        currentQuestionPromptTextView = findViewById<TextView>(R.id.mainActivity_activeQuestionPromptTextView)
+        currentQuestionChoicesTextView = findViewById<TextView>(R.id.mainActivity_activeQuestionChoicesTextView)
+
+
+
+
+
 
 
         Timer("Heartbeat", false).schedule(100, 30000){
@@ -157,7 +173,28 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             if(UserType.SERVER.equals(userType)) { //guarding against null userType values
                 println("PERMISSION TO ACTIVATE QUESTION GRANTED, " + userName)
                 activateQuestion(listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX))
+
+
+                //Updating the UI:
+                var newActiveQuestion = listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX)
+
+                var newActiveQuestionPrompt = newActiveQuestion.prompt
+                var newActiveQuestionChoicesList = newActiveQuestion.choices
+
+                var choicesListAsString: String = ""
+
+                for(choice in newActiveQuestionChoicesList) {
+                    choicesListAsString += "- " + choice + "\n"
+                }
+
+                currentQuestionPromptTextView?.setText(newActiveQuestionPrompt)
+                currentQuestionChoicesTextView?.setText(choicesListAsString)
+
                 CURRENT_QUESTION_INDEX++
+
+                //callActivateQuestion method
+                activateQuestion(newActiveQuestion)
+
             } else {
                 println("YOU DONT HAVE PERMISSION TO ACTIVATE A NEW QUESTION, " + userName)
             }
@@ -165,33 +202,19 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
 
 
-
-
-
-
-        answerQuestionButton.setOnClickListener{
-            Thread(Runnable {
-                val intent = Intent(this, AnswerQuestionActivity::class.java).also{
-                    if (activeQuestion == null) {
-                        runOnUiThread{
-                            Toast.makeText(applicationContext,"No active question", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                    else {
-                        val user =
-                            User(nickname = "Brian", user_id = "5bca90f1-d5a4-46c5-8394-0b5cebbe1945")
-                        val quiz = Quiz(activeQuestion!!.quiz_id, "BobMarley")
-                        it.putExtra("active_question", activeQuestion)
-                        repository!!.insertUser(user)
-                        repository!!.insertQuiz(quiz)
-                        it.putExtra("user_id", user.user_id)
-                        it.putExtra("response_id", responseID)
-                        it.putExtra("quiz_id", quiz.quiz_id)
-                    }
-                }
-                startActivityForResult(intent, 2)
-            }).start()
+        submitActiveQuestionAnswerButton.setOnClickListener{
+            val submittedAnswer = findViewById<EditText>(R.id.mainActivity_answerEditText).text.toString()
+            println("USER SELECTED THE FOLLOWING ANSWER: " + submittedAnswer)
         }
+
+
+
+
+
+
+
+
+
 
         /* We don't want to block the UI thread */
         val server = UDPServer()
@@ -222,39 +245,8 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             }
         }
 
-        create_question_button.setOnClickListener{
-            val intent = Intent(this, CreateQuestionActivity::class.java).also{
-                it.putExtra("quizID", quizId)
-            }
-            startActivityForResult(intent, 1)
-        }
 
-        //TODO Heavy refactoring required. All onClick configurations should be in a separate function.
-        /**
-         * OnClick functionality for the activateDummyQuestionButton.
-         */
-        activateDummyQuestionButton.setOnClickListener{
-            //Create a dummy MultipleChoiceQuestion object's values:
-            val questionId: String = "1234"
-            val prompt: String = "Which is the best NFL Team of all time?"
-            val answerChoices = listOf("Bears", "Patriots", "Seahawks", "Steelers")
-            val answer = "Bears"
-            val quizId = "5678"
 
-            //Create a dummy MultipleChoiceQuestion object
-            val dummyQuestion: MultipleChoiceQuestion1 =  MultipleChoiceQuestion1(
-                UUID.randomUUID(), UUID.randomUUID(), prompt, answerChoices, answer
-            )
-
-            //Ony the server has the power to change the active question
-            if(UserType.SERVER.equals(userType)) { //guarding against null userType values
-                println("PERMISSION TO ACTIVATE QUESTION GRANTED, " + userName)
-                activateQuestion("dummyUsername", dummyQuestion)
-            } else {
-                println("YOU DONT HAVE PERMISSION TO ACTIVATE A NEW QUESTION, " + userName)
-            }
-
-        }
     }
 
     private fun hideServerButtons() {
@@ -309,12 +301,51 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
                 //currentActiveQuestionTextView.setText("Active Question: " + currentActiveQuestion)
                 println("A new Multiple Choice question has been activated!")
+
+                //UI updating logic goes here
+                runOnUiThread{
+                    println("UI updating should go here")
+                    updateCurrentActiveQuestionUI(multipleChoiceQuestion)
+                }
+
             }
             if ("hb" == type){
                 onHeartBeat(message as HeartBeat)
             }
+
+            if("multiple_choice_response" == type) {
+
+            }
         }).start()
     }
+
+
+
+
+
+
+
+
+
+
+
+    private fun updateCurrentActiveQuestionUI(newActiveQuestion1: MultipleChoiceQuestion1) {
+
+        var newActiveQuestionPrompt = newActiveQuestion1.prompt
+        var newActiveQuestionChoicesList = newActiveQuestion1.choices
+
+        var choicesListAsString: String = ""
+
+        for(choice in newActiveQuestionChoicesList) {
+            choicesListAsString += "- " + choice + "\n"
+        }
+
+        currentQuestionPromptTextView?.setText(newActiveQuestionPrompt)
+        currentQuestionChoicesTextView?.setText(choicesListAsString)
+    }
+
+
+
 
     /**
      * Iterates through the list of UDP clients and emits a `heartbeat`
