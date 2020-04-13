@@ -110,12 +110,12 @@ OK
 3). You are now ready to send commands to your emulator. The only command you need to make on your server emulator is the following:
 
 ```bash
-redir add udp:5023:5024
+redir add tcp:5023:5023
 ```
 
 That will redirect the appropriate data to your server emulator.
 
-## Configuring Port-forwarding on the Client Emulator:
+## Configuring Port-forwarding on the Client/Replica Emulator:
 
 1). Telnet into the client emulator device:
 ```bash
@@ -128,7 +128,10 @@ telnet localhost 5556
 auth xFrXqZnNxq0yqeBy
 ```
 
+If the IP addresss you chose for this emulator is 10.0.2.17 the port should be 6000. If it is 10.0.2.16 it should be 5000.
 3). Run the following command to redirect data to the device:
 ```bash
-redir add udp:5000:6000
+redir add tcp:5000:5000
 ```
+
+Repeat the process for 
