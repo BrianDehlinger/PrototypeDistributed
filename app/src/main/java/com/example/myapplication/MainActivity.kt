@@ -46,7 +46,6 @@ class MainActivity : AppCompatActivity() {
     lateinit var otherReplicas: MutableList<NetworkInformation>
 
     // The current active question if any
-    var activeQuestion: MultipleChoiceQuestion? = null
 
     // Thread pools
     val messageSenders: ExecutorService = Executors.newFixedThreadPool(15)
@@ -113,7 +112,7 @@ class MainActivity : AppCompatActivity() {
         answerQuestionButton.setOnClickListener {
             userInterfaceThreads.execute(Thread(Runnable {
                 Intent(this, AnswerQuestionActivity::class.java).also {
-                    if (activeQuestion == null) {
+                    if (session.activeQuestion == null) {
                         runOnUiThread {
                             Toast.makeText(
                                 applicationContext,
@@ -127,8 +126,8 @@ class MainActivity : AppCompatActivity() {
                                 nickname = "Brian",
                                 user_id = "5bca90f1-d5a4-46c5-8394-0b5cebbe1945"
                             )
-                        val quiz = Quiz(activeQuestion!!.quiz_id, "BobMarley")
-                        it.putExtra("active_question", activeQuestion)
+                        val quiz = Quiz(session.activeQuestion!!.quiz_id, "BobMarley")
+                        it.putExtra("active_question", session.activeQuestion)
                         repository!!.insertUser(user)
                         repository!!.insertQuiz(quiz)
                         it.putExtra("user_id", user.user_id)
@@ -235,7 +234,7 @@ class MainActivity : AppCompatActivity() {
                     data?.getParcelableExtra("question") as MultipleChoiceQuestion
                 println(gson.toJson(questionToActivate))
                 if (session.isRingLeader) {
-                    session.broadcast(gson.toJson(questionToActivate))
+                    session.activateQuestion(questionToActivate)
                 }
             }
             if (requestCode == 49374) {

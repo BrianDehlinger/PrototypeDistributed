@@ -24,6 +24,8 @@ open class Session(context: Context, var RingLeader: NetworkInformation?, protec
     protected val gsonConverter = GSONConverter()
     protected val client = TCPClient()
     open protected val messageHandler: MessageHandler = MessageHandler()
+    var activeQuestion: MultipleChoiceQuestion? = null
+
     protected val networkService = TCPServer().also{
         it.addListener(this)
         val portToSet = DebugProviders(context).provideServerPort(context)
@@ -66,7 +68,7 @@ open class Session(context: Context, var RingLeader: NetworkInformation?, protec
     }
 
     open fun activateQuestion(question: MultipleChoiceQuestion){
-        println("Activating a question")
+        activeQuestion = question
     }
 
     open fun replicaFailure(failure: NetworkInformation){
@@ -174,7 +176,6 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
         val networkInformation = DebugProviders(context).provideNetworkInformation(context)
         val heartBeat = HeartBeat(ip = networkInformation.ip, port = networkInformation.port, peer_type = networkInformation.peer_type)
         for (replica in sessionReplicas){
-            gson.toJson(heartBeat)
             sendMessage(gson.toJson(heartBeat), recipient = replica)
             updateReplicaStatus(replica)
         }
@@ -216,7 +217,6 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
     }
 
     override fun activateQuestion(question: MultipleChoiceQuestion) {
-        println("ACTIVATING QUESTION")
         if (isRingLeader) {
             val jsonTree = gson.toJsonTree(question).also {
                 it.asJsonObject.addProperty("type", "multiple_choice_question")
@@ -224,7 +224,7 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
             val json = gson.toJson(jsonTree)
             broadcast(json)
         }
-        val activateQuestionIntent = Intent()
+        super.activateQuestion(question)
     }
 
     protected inner class ReplicaMessageHandler: MessageHandler() {
