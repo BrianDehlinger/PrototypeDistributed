@@ -12,11 +12,14 @@ import android.widget.ListView;
 
 import com.example.myapplication.Models.MultipleChoiceQuestion;
 import com.example.myapplication.Models.MultipleChoiceQuestion1;
+import com.example.myapplication.Models.Quiz1;
 import com.example.myapplication.R;
 import com.google.gson.Gson;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class CreateQuizActivity extends AppCompatActivity {
 
@@ -30,7 +33,7 @@ public class CreateQuizActivity extends AppCompatActivity {
     ListView listview;
     Button addNewQuestionButton;
 
-    private static List<MultipleChoiceQuestion1> listOfQuizQuestions
+    private static ArrayList<MultipleChoiceQuestion1> listOfQuizQuestions
             = new ArrayList<MultipleChoiceQuestion1>();
 
     private static List<String> listOfQuestionPrompts
@@ -50,6 +53,10 @@ public class CreateQuizActivity extends AppCompatActivity {
                 (CreateQuizActivity.this, android.R.layout.simple_list_item_1, listOfQuestionPrompts);
 
         MultipleChoiceQuestion1 newMultipleChoiceQuestion1;
+
+        if(quizName != null) {
+            quizNameEditText.setText(quizName);
+        }
 
         if(getIntent().getStringExtra("EXTRA_USER_NAME") != null) {
             //The userName is passed in from the previous activity as "EXTRA_USER_NAME"
@@ -104,8 +111,6 @@ public class CreateQuizActivity extends AppCompatActivity {
         createQuizButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //Store the quizName -- as defined by the user
-                quizName = extractQuizName();
 
                 /**
                  * Set the `nextActivity` to be the `CreateQuizActivity`
@@ -118,7 +123,7 @@ public class CreateQuizActivity extends AppCompatActivity {
                 //Passing in "extra" data to the nextActivity
                 nextActivity.putExtra("EXTRA_USER_NAME", userName);
                 nextActivity.putExtra("EXTRA_QUIZ_NAME", quizName);
-                //TODO pass the listOfQuizQuestions to the MainActivity
+                nextActivity.putExtra("EXTRA_LIST_OF_QUIZ_QUESTIONS", (Serializable) listOfQuizQuestions);
 
                 //start the nextActivity
                 startActivity(nextActivity);
@@ -129,6 +134,7 @@ public class CreateQuizActivity extends AppCompatActivity {
         addNewQuestionButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                quizName = extractQuizName();
                 Intent intent = new Intent(getApplicationContext(), CreateQuestionActivity.class);
                 startActivity(intent);
             }

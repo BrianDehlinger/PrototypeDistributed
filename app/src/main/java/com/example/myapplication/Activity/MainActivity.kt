@@ -28,10 +28,12 @@ import kotlin.concurrent.schedule
 // https://demonuts.com/kotlin-generate-qr-code/ was used for the basis of  QRCode generation and used pretty much all of the code for the QR methods. Great thanks to the authors!
 class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
     var userType: UserType? = null
+    var quizName: String? = null
     var userName: String? = null
     private var bitmap: Bitmap? = null
     private var imageview: ImageView? = null
     private var generateConnectionQrButton: Button? = null
+    private var sessionIdTextView: TextView? = null
     val converter = GSONConverter()
     var ip = "0.0.0.0"
     val gson = Gson()
@@ -41,6 +43,8 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
     val clientOne = NetworkInformation("10.0.2.2", 5023, "client")
     val clientTwo = NetworkInformation("10.0.2.2", 5000, "client")
     val clientThree = NetworkInformation("10.0.2.2", 5026, "client")
+
+    var listOfQuizQuestions: ArrayList<MultipleChoiceQuestion1>? = null
 
     //var currentActiveQuestionTextView: TextView = findViewById(R.id.currentActiveQuestionTextView)
 
@@ -72,13 +76,18 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         //TODO: print statements are sloppy. Make a logger.
         //Extracting the userName value
         userName = getIntent().getStringExtra("EXTRA_USER_NAME")
+        quizName = getIntent().getStringExtra("EXTRA_QUIZ_NAME")
 
+        val i = intent
+        listOfQuizQuestions = i.getSerializableExtra("EXTRA_LIST_OF_QUIZ_QUESTIONS") as ArrayList<MultipleChoiceQuestion1>
+
+        println("size of received list in the MainActivity is: " + listOfQuizQuestions!!.size)
         println("username: " + userName)
-        println("userType: " + userType)
+        println("quizName: " + quizName)
 
         //specify the userType in the UI's label
         var userMetadataTextView: TextView = findViewById(R.id.userMetadata);
-        userMetadataTextView.setText("userType: " + userType + "\n" + "Username: " + userName)
+        userMetadataTextView.setText("quizName: " + quizName + "\n" + "Username: " + userName)
 
         //specify the active question in the UI (will be null initially)
         //currentActiveQuestionTextView.setText("Active Question: " + currentActiveQuestion)
@@ -95,11 +104,15 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         val browseQuestionsButton = findViewById<Button>(R.id.browse_questions)
         repository = RepositoryImpl(dataaccess.questionDao(), dataaccess.responseDao(), dataaccess.userDao(), dataaccess.quizDao())
 
+        sessionIdTextView = findViewById<TextView>(R.id.mainActivity_sessionIdTextView)
+
+        //TODO Generating a random int as sessionId.
+        val randomSessionId = (Math.random() * 9000).toInt() + 1000
+        sessionIdTextView?.setText("Session ID: " + randomSessionId.toString())
+
         Timer("Heartbeat", false).schedule(100, 30000){
             emitHeartBeat()
         }
-
-
 
         val quizId = UUID.randomUUID().toString()
 
