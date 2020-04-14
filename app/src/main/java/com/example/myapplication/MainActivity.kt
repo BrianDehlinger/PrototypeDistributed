@@ -250,7 +250,7 @@ class MainActivity : AppCompatActivity() {
                         println(ringLeader)
                         if (ringLeader!!.javaClass.name == NetworkInformation::class.java.name) {
                             println("HERE")
-                            session.RingLeader = ringLeader as NetworkInformation
+                            session.setTheRingLeader(ringLeader as NetworkInformation)
                             session.sendMessage(
                                 message = gson.toJson(
                                     JoinRequest(

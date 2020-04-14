@@ -2,6 +2,7 @@ package com.example.myapplication.Models
 
 import com.example.myapplication.Networking.NetworkInformation
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
 
 class PeerMonitor(clients: ArrayList<NetworkInformation> = arrayListOf()) {
     private var clientTracker: ConcurrentHashMap<NetworkInformation, PeerStatus>? = ConcurrentHashMap()
@@ -29,7 +30,18 @@ class PeerMonitor(clients: ArrayList<NetworkInformation> = arrayListOf()) {
         return clientTracker!![client]
     }
 
+    fun removeClient(client: NetworkInformation){
+        clientTracker?.remove(client)
+    }
+
     override fun toString(): String {
         return clientTracker.toString()
+    }
+
+    fun setNewClients(listOfReplicas: CopyOnWriteArrayList<NetworkInformation>){
+        clientTracker?.clear()
+        for (replica in listOfReplicas){
+            addClient(replica)
+        }
     }
 }

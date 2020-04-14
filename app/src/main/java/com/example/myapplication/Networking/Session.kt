@@ -42,6 +42,10 @@ open class Session(val context: Context, var RingLeader: NetworkInformation?, pr
         it.start()
     }
 
+    open fun setTheRingLeader(networkInformation: NetworkInformation){
+        RingLeader = networkInformation
+    }
+
     fun sendMessage(message: String, recipient: NetworkInformation){
         threadPool.execute(Thread(Runnable{client.sendMessage(message, port =recipient.port, host = recipient.ip)}))
     }
@@ -106,10 +110,6 @@ open class Session(val context: Context, var RingLeader: NetworkInformation?, pr
                 "connection_restored" -> {
                     println("Connection restored")
                 }
-                "new_replica" -> {
-                    val replica = instantiatedObject as NewReplica
-                    addReplica(replica.information)
-                }
                 "sync_replicas" -> {
                     synchronized(this) {
                         val replicas = instantiatedObject as List<NetworkInformation>
@@ -130,6 +130,9 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
     private val peerMonitor: PeerMonitor = PeerMonitor().also {
         for (replica in sessionReplicas) {
             it.addClient(replica)
+            if (!isRingLeader && RingLeader != null) {
+                it.addClient(RingLeader)
+            }
         }
     }
     private val bully = Bully(this)
@@ -139,7 +142,9 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
         synchronized(this) {
             super.addReplica(replica)
             peerMonitor.addClient(replica)
-            val newReplicas = sessionReplicas.toList()
+            val newReplicas = sessionReplicas.toMutableList().also{
+                it.add(RingLeader)
+            }
             broadcast(gson.toJson(SyncReplicas(newReplicas)))
         }
     }
@@ -165,22 +170,35 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
         }
     }
     private fun replicaHB(replica: NetworkInformation){
+        println("REPLICA IS: $replica")
         val replicaMonitor = peerMonitor.getClient(replica)
+        println(peerMonitor.getClients())
+        println("replica monitor is $replicaMonitor")
         if (replicaMonitor != null){
             replicaMonitor.color = "green"
             replicaMonitor.last_received.getAndSet(0)
-            // Connection Restored
         }
+        println(peerMonitor.getClients())
     }
 
     fun hasHighestPeerID(): Boolean{
         return true
     }
 
-    private fun failOverProtocol() {
-        CoroutineScope(Dispatchers.IO).launch {
-            bully.start()
+    private fun failOverProtocol(networkInformation: NetworkInformation) {
+        if (networkInformation.peer_type == "server"){
+            CoroutineScope(Dispatchers.IO).launch {
+                bully.start()
+            }
         }
+    }
+
+    override fun setTheRingLeader(networkInformation: NetworkInformation){
+        if (networkInformation != DebugProviders(context).provideNetworkInformation(context)) {
+            peerMonitor.removeClient(RingLeader as NetworkInformation)
+            peerMonitor.addClient(networkInformation)
+        }
+        RingLeader = networkInformation
     }
 
     override fun broadcast(message: String) {
@@ -194,9 +212,10 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
     override fun replicaFailure(failure: NetworkInformation) {
         val replicaMonitor = peerMonitor.getClient(failure)
         replicaMonitor?.other_client_failure_count?.getAndIncrement()
+        if (replicaMonitor?.other_client_failure_count!!.get() >= (sessionReplicas.size)/2)
+            failOverProtocol(failure)
     }
     private fun emitHB(context: Context){
-        println("HB")
         val networkInformation = DebugProviders(context).provideNetworkInformation(context)
         val heartBeat = HeartBeat(ip = networkInformation.ip, port = networkInformation.port, peer_type = networkInformation.peer_type)
         for (replica in sessionReplicas){
@@ -229,6 +248,7 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
 
     override fun onHeartBeat(heartBeat: HeartBeat) {
         val replica = NetworkInformation(heartBeat.ip, heartBeat.port, heartBeat.peer_type)
+        println("HB")
         replicaHB(replica)
     }
 
@@ -297,14 +317,16 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
                 }
                 "sync_replicas" -> {
                     synchronized(this) {
+                        println("SYNCHING REPLICAS")
                         val replicas = instantiatedObject as List<NetworkInformation>
                         val mutableReplicas = replicas.toMutableList()
+                        println("MUTABLE REPLICAS IS $mutableReplicas")
                         val thisClient = DebugProviders(context).provideNetworkInformation(context)
                         mutableReplicas.remove(thisClient)
                         sessionReplicas = CopyOnWriteArrayList(mutableReplicas)
+                        peerMonitor.setNewClients(sessionReplicas)
                     }
                 }
-
             }
         }
     }
