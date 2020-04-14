@@ -5,9 +5,7 @@ import com.example.myapplication.Models.HeartBeat
 import com.example.myapplication.Models.MultipleChoiceQuestion
 import com.example.myapplication.Models.MultipleChoiceResponse
 import com.example.myapplication.Models.User
-import com.example.myapplication.Networking.JoinRequest
-import com.example.myapplication.Networking.NetworkInformation
-import com.example.myapplication.Networking.NewReplica
+import com.example.myapplication.Networking.*
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
@@ -28,6 +26,15 @@ class GSONConverter(val gson: Gson = Gson()){
             "sync_replicas" -> {
                 val replicas = gson.fromJson(json_string, Map::class.java)["replicas"]
                 return gson.fromJson(replicas.toString(), customType)
+            }
+            "bully_coordinator" -> {
+                return gson.fromJson(json_string, BullyCoordinatorMessage::class.java)
+            }
+            "bully_election" -> {
+                return gson.fromJson(json_string, BullyElectionMessage::class.java)
+            }
+            "bully_ok" -> {
+                return gson.fromJson(json_string, BullyOKMessage::class.java)
             }
         }
         return returnValue

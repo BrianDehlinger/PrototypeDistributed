@@ -257,7 +257,7 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
     }
 
     fun getPeerWithId(id: Int): NetworkInformation{
-        return NetworkInformation.getNetworkInfo(MainActivity())
+        return NetworkInformation.getNetworkInfo(context)
     }
 
     override fun activateQuestion(question: MultipleChoiceQuestion) {

@@ -1,5 +1,6 @@
 package com.example.myapplication.Networking
 
+import com.google.gson.Gson
 import kotlinx.coroutines.*
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -15,11 +16,11 @@ class Bully(val session: ReplicaSession){
         val clientsWithHigherIds = session.getPeersWithHigherIds()
         if (clientsWithHigherIds == null){
             session.RingLeader = session.getPeerWithId(session.peerId)
-            session.sendToReplicas(BullyCoordinatorMessage(peerId = session.peerId).toString())
+            session.sendToReplicas(Gson().toJson(BullyCoordinatorMessage(peerId = session.peerId)))
         }
         else{
             for (replica in clientsWithHigherIds) {
-                session.sendMessage(BullyElectionMessage(peerId = session.peerId).toString(), replica)
+                session.sendMessage(Gson().toJson(BullyElectionMessage(peerId = session.peerId)), replica)
             }
             try{
                 withTimeout(9000){
@@ -33,7 +34,7 @@ class Bully(val session: ReplicaSession){
             }
             catch(e: TimeoutCancellationException) {
                 session.RingLeader = session.getPeerWithId(session.peerId)
-                session.sendToReplicas(BullyCoordinatorMessage(peerId = session.peerId).toString())
+                session.sendToReplicas(Gson().toJson(BullyCoordinatorMessage(peerId = session.peerId)))
             }
             catch(e: CancellationException){
                 try{
@@ -57,7 +58,7 @@ class Bully(val session: ReplicaSession){
         }
         if (session.hasHighestPeerID()){
             session.RingLeader = session.getPeerWithId(session.peerId)
-            session.sendToReplicas(BullyCoordinatorMessage(peerId = session.peerId).toString())
+            session.sendToReplicas(Gson().toJson(BullyCoordinatorMessage(peerId = session.peerId)))
         }
         else {
             session.sendMessage(BullyOKMessage(peerId = session.peerId).toString(), session.getPeerWithId(electionMessage.peerId))
