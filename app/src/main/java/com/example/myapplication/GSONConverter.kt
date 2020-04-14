@@ -22,7 +22,6 @@ class GSONConverter(val gson: Gson = Gson()){
             "failure_detected" -> return gson.fromJson(json_string, NetworkInformation::class.java)
             "network_info" -> return gson.fromJson(json_string, NetworkInformation::class.java)
             "join_request" -> return gson.fromJson(json_string, JoinRequest::class.java)
-            "new_replica" -> return gson.fromJson(json_string, NewReplica::class.java)
             "sync_replicas" -> {
                 val replicas = gson.fromJson(json_string, Map::class.java)["replicas"]
                 return gson.fromJson(replicas.toString(), customType)

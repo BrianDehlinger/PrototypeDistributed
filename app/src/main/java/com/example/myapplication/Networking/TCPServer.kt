@@ -59,6 +59,7 @@ class TCPServer : Server{
                     data = "$data}"
                 }
                 inputStream.close()
+                clientSocket.close()
             } catch (e: Exception) {
                 println(e.toString())
                 e.printStackTrace()
@@ -72,7 +73,6 @@ class TCPServer : Server{
     }
 
     override fun run() {
-        println("Listening for UDP packets")
         listenForPackets(port)
     }
 

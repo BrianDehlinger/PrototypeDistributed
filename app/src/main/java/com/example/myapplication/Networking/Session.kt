@@ -130,9 +130,9 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
     private val peerMonitor: PeerMonitor = PeerMonitor().also {
         for (replica in sessionReplicas) {
             it.addClient(replica)
-            if (!isRingLeader && RingLeader != null) {
-                it.addClient(RingLeader)
-            }
+        }
+        if ((!(isRingLeader)) && (RingLeader != null)) {
+            it.addClient(RingLeader)
         }
     }
     private val bully = Bully(this)

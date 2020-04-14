@@ -1,10 +1,6 @@
 package com.example.myapplication.Networking
 
-import com.example.myapplication.Models.MultipleChoiceQuestion1
 import java.io.DataOutputStream
-import java.net.DatagramPacket
-import java.net.DatagramSocket
-import java.net.InetAddress
 import java.net.Socket
 
 class TCPClient: Client{
@@ -25,14 +21,5 @@ class TCPClient: Client{
         finally {
             outputStream?.close()
         }
-    }
-
-    override fun activateQuestion(
-        instructorUserName: String,
-        host: String,
-        port: Int,
-        questionToActivate: MultipleChoiceQuestion1
-    ) {
-        println("PASS")
     }
 }

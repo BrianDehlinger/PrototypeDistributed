@@ -5,8 +5,3 @@ data class JoinRequest (
     val type: String = "join_request",
     val peer_type: String
 )
-
-data class NewReplica(
-    val information: NetworkInformation,
-    val type: String = "new_replica"
-)
