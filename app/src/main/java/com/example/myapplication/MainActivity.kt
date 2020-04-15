@@ -181,7 +181,9 @@ class MainActivity : AppCompatActivity() {
                 sessionReplicas = CopyOnWriteArrayList( otherReplicas)
             ).also{
                 it.startHB(contextReference)
+                // Replace with a set to
                 it.isRingLeader = true
+                it.assumeLeadership()
             }
         } else if (typeOfUser == "STUDENT") {
             if (isReplica) {

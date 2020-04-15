@@ -1,6 +1,7 @@
 package com.example.myapplication.Networking
 
 import android.content.Context
+import android.net.Network
 import android.net.NetworkInfo
 import com.example.myapplication.MainActivity
 
@@ -38,6 +39,18 @@ class DebugProviders(
         }
     }
 
+    fun providePeerWithId(id: Int): NetworkInformation {
+        if (id == 3) {
+            return NetworkInformation("10.0.2.2", 5023, "server")
+        }
+        if (id == 2) {
+            return NetworkInformation("10.0.2.2", 5000, "replica")
+        }
+        else {
+            return NetworkInformation("10.0.2.2", 6000, "replica")
+        }
+    }
+
     fun provideNetworkInformation(context: Context): NetworkInformation {
         if (NetworkInformation.getNetworkInfo(context).ip == "10.0.2.18") {
             return NetworkInformation("10.0.2.2", 5023, "server")
@@ -62,12 +75,15 @@ class DebugProviders(
 
     fun providePeersWithHigherId(context: Context): List<NetworkInformation>? {
         if (NetworkInformation.getNetworkInfo(context).ip == "10.0.2.16") {
+            println("Ip is 16")
             return null
         } else if (NetworkInformation.getNetworkInfo(context).ip == "10.0.2.17") {
+            println("Ip is 17")
             val listPeers =
                 listOf<NetworkInformation>(NetworkInformation("10.0.2.2", 5000, "replica"))
             return listPeers
         } else {
+            println("IP is null")
             return null
         }
     }

@@ -187,7 +187,7 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
     }
 
     fun hasHighestPeerID(): Boolean{
-        return true
+        return false
     }
 
     private fun failOverProtocol(networkInformation: NetworkInformation) {
@@ -201,8 +201,11 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
 
     override fun setTheRingLeader(networkInformation: NetworkInformation){
         if (networkInformation != DebugProviders(context).provideNetworkInformation(context)) {
-            peerMonitor.removeClient(RingLeader as NetworkInformation)
+            isRingLeader = false
             peerMonitor.addClient(networkInformation)
+        }
+        else {
+            isRingLeader = true
         }
         RingLeader = networkInformation
     }
@@ -218,9 +221,11 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
     override fun replicaFailure(failure: NetworkInformation) {
         val replicaMonitor = peerMonitor.getClient(failure)
         if (replicaMonitor != null) {
-            replicaMonitor?.other_client_failure_count?.getAndIncrement()
-            if (replicaMonitor?.other_client_failure_count!!.get() >= (sessionReplicas.size) / 2)
+            replicaMonitor.other_client_failure_count.getAndIncrement()
+            if (replicaMonitor?.other_client_failure_count.get() >= (sessionReplicas.size) / 2) {
+                replicaMonitor.other_client_failure_count.set(0)
                 failOverProtocol(failure)
+            }
         }
     }
     private fun emitHB(context: Context){
@@ -260,17 +265,16 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
 
     override fun onHeartBeat(heartBeat: HeartBeat) {
         val replica = NetworkInformation(heartBeat.ip, heartBeat.port, heartBeat.peer_type)
-        println("HB")
         replicaHB(replica)
     }
 
     fun getPeersWithHigherIds(): List<NetworkInformation>?{
-        val peersWithHigerIds = DebugProviders(context).providePeersWithHigherId(context)
-        return null
+        val peersWithHigherIds = DebugProviders(context).providePeersWithHigherId(context)
+        return peersWithHigherIds
     }
 
     fun getPeerWithId(id: Int): NetworkInformation{
-        return NetworkInformation.getNetworkInfo(context)
+        return DebugProviders(context).providePeerWithId(id)
     }
 
     override fun activateQuestion(question: MultipleChoiceQuestion) {
@@ -283,14 +287,7 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
 
     fun assumeLeadership(){
         synchronized(this) {
-            isRingLeader = true
-            sessionReplicas.remove(RingLeader)
             setTheRingLeader(DebugProviders(context).provideNetworkInformation(context))
-            val newReplicas = sessionReplicas.toMutableSet().also {
-                it.add(DebugProviders(context).provideNetworkInformation(context))
-            }
-            Thread.sleep(2000)
-            broadcast(gson.toJson(SyncReplicas(newReplicas.toMutableList())))
         }
     }
 
@@ -307,12 +304,10 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
                     activateQuestion(activeQuestion)
                 }
                 "hb" -> {
-                    println("HEARTBEAT LOGIC")
                     val heartBeat = instantiatedObject as HeartBeat
                     onHeartBeat(heartBeat)
                 }
                 "failure_detected" -> {
-                    println("FAILURE LOGIC")
                     val failure = instantiatedObject as NetworkInformation
                     replicaFailure(failure)
                 }
@@ -328,7 +323,6 @@ class ReplicaSession(context: Context, RingLeader: NetworkInformation?, sessionR
                 "bully_coordinator" -> {
                     val coordinatorMessage = instantiatedObject as BullyCoordinatorMessage
                     bully.onCoordinatorMessage(coordinatorMessage)
-                    setTheRingLeader(coordinatorMessage.networkInformation)
                 }
                 "join_request" -> {
                     val joinRequest = instantiatedObject as JoinRequest

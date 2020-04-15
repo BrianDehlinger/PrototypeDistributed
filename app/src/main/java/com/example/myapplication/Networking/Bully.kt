@@ -15,7 +15,6 @@ class Bully(val session: ReplicaSession){
         this.clear()
         val clientsWithHigherIds = session.getPeersWithHigherIds()
         if (clientsWithHigherIds == null){
-            session.RingLeader = session.getPeerWithId(session.peerId)
             becomeLeader()
         }
         else{
@@ -33,7 +32,6 @@ class Bully(val session: ReplicaSession){
                 }
             }
             catch(e: TimeoutCancellationException) {
-                session.RingLeader = session.getPeerWithId(session.peerId)
                 becomeLeader()
             }
             catch(e: CancellationException){
@@ -57,11 +55,10 @@ class Bully(val session: ReplicaSession){
             return
         }
         if (session.hasHighestPeerID()){
-            session.RingLeader = session.getPeerWithId(session.peerId)
-            session.sendToReplicas(Gson().toJson(BullyCoordinatorMessage(peerId = session.peerId, networkInformation = session.getInformationOnLocalNetworkInfo())))
+            becomeLeader()
         }
         else {
-            session.sendMessage(BullyOKMessage(peerId = session.peerId).toString(), session.getPeerWithId(electionMessage.peerId))
+            session.sendMessage(Gson().toJson(BullyOKMessage(peerId = session.peerId)), session.getPeerWithId(electionMessage.peerId))
             if (electionMessage.peerId < session.peerId){
                 CoroutineScope(Dispatchers.IO).launch {
                     bully.start()
@@ -71,6 +68,7 @@ class Bully(val session: ReplicaSession){
         }
     }
 
+    // This can be problematic. Assuming leadership
     private fun becomeLeader(){
         println("BECOMING LEADER")
         session.sendToReplicas(Gson().toJson(BullyCoordinatorMessage(peerId = session.peerId, networkInformation = session.getInformationOnLocalNetworkInfo())))
@@ -81,6 +79,10 @@ class Bully(val session: ReplicaSession){
         dropOut()
     }
     fun onCoordinatorMessage(coordinatorMessage: BullyCoordinatorMessage){
+        if (!victoryMessageReceived.get()){
+            victoryMessageReceived.set(true)
+            session.setTheRingLeader(coordinatorMessage.networkInformation)
+        }
         println("A leader ${coordinatorMessage.networkInformation} has been chosen")
     }
 
