@@ -32,7 +32,6 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
     private var bitmap: Bitmap? = null
     private var imageview: ImageView? = null
     private var generateConnectionQrButton: Button? = null
-    private var activateNextQuestionButton: Button? = null
 
     var currentQuestionPromptTextView: TextView? = null
     var currentQuestionChoicesTextView: TextView? = null
@@ -58,6 +57,9 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
     // The actual persisted database!
     private var repository: RepositoryImpl? = null
+
+
+    private var allResponsesList: ArrayList<MultipleChoiceResponse>? = ArrayList<MultipleChoiceResponse>()
 
     val clients = arrayListOf<NetworkInformation>().also{
         it.add(clientOne)
@@ -124,31 +126,15 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         networkInformation = NetworkInformation.NetworkInfoFactory.getNetworkInfo(this)
         val activateQuizButton = findViewById<Button>(R.id.activateQuizButton)
         val submitActiveQuestionAnswerButton = findViewById<Button>(R.id.mainActivity_submitAnswerButton)
-        activateNextQuestionButton = findViewById<Button>(R.id.activateNextQuestionButton)
+        val activateNextQuestionButton = findViewById<Button>(R.id.activateNextQuestionButton)
 
         val dataaccess = QuizDatabase.getDatabase(this)
         val responseID = UUID.randomUUID().toString()
         var browseQuestionsButton = findViewById<Button>(R.id.browse_questions)
         repository = RepositoryImpl(dataaccess.questionDao(), dataaccess.responseDao(), dataaccess.userDao(), dataaccess.quizDao())
 
-
-
-
-
-
-
-
-
-
-
         currentQuestionPromptTextView = findViewById<TextView>(R.id.mainActivity_activeQuestionPromptTextView)
         currentQuestionChoicesTextView = findViewById<TextView>(R.id.mainActivity_activeQuestionChoicesTextView)
-
-
-
-
-
-
 
         Timer("Heartbeat", false).schedule(100, 30000){
             emitHeartBeat()
@@ -200,11 +186,56 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             }
         }
 
+//        activateNextQuestionButton.setOnClickListener{
+//            //Ony the server has the power to change the active question
+//            if(UserType.SERVER.equals(userType)) { //guarding against null userType values
+//                println("PERMISSION TO ACTIVATE QUESTION GRANTED, " + userName)
+//                activateQuestion(listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX))
+//
+//                //Updating the UI:
+//                var newActiveQuestion = listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX)
+//
+//                var newActiveQuestionPrompt = newActiveQuestion.prompt
+//                var newActiveQuestionChoicesList = newActiveQuestion.choices
+//
+//                var choicesListAsString: String = ""
+//
+//                for(choice in newActiveQuestionChoicesList) {
+//                    choicesListAsString += "- " + choice + "\n"
+//                }
+//
+//                currentQuestionPromptTextView?.setText(newActiveQuestionPrompt)
+//                currentQuestionChoicesTextView?.setText(choicesListAsString)
+//
+//                CURRENT_QUESTION_INDEX++
+//
+//
+//
+//
+//
+//
+//
+//                //callActivateQuestion method
+//                activateQuestion(newActiveQuestion)
+//
+//            } else {
+//                println("YOU DONT HAVE PERMISSION TO ACTIVATE A NEW QUESTION, " + userName)
+//            }
+//        }
+
 
 
         submitActiveQuestionAnswerButton.setOnClickListener{
             val submittedAnswer = findViewById<EditText>(R.id.mainActivity_answerEditText).text.toString()
             println("USER SELECTED THE FOLLOWING ANSWER: " + submittedAnswer)
+
+            var multipleChoiceResponse: MultipleChoiceResponse = MultipleChoiceResponse(
+                "", "", submittedAnswer,
+                userName.toString(), sessionId.toString()
+            )
+
+            //propagating the new response
+            propagateMultipleChoiceAnswer(multipleChoiceResponse)
         }
 
 
@@ -250,11 +281,11 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
     }
 
     private fun hideServerButtons() {
-        activateNextQuestionButton?.setVisibility(View.GONE)
+        //activateNextQuestionButton?.setVisibility(View.GONE)
     }
 
     private fun showServerButtons() {
-        activateNextQuestionButton?.setVisibility(View.VISIBLE)
+        //activateNextQuestionButton?.setVisibility(View.VISIBLE)
     }
 
     private fun activateQuestion(questionToActivate: MultipleChoiceQuestion1) {
@@ -264,6 +295,24 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             userName?.let { activateQuestion(it, questionToActivate) }
         } else {
             println("YOU DONT HAVE PERMISSION TO ACTIVATE A NEW QUESTION, " + userName)
+        }
+    }
+
+
+    private fun propagateMultipleChoiceAnswer(multipleChoiceResponse: MultipleChoiceResponse) {
+        println("ABOUT TO PROPAGATE THE FOLLOWING ANSWER OBJECT: " + multipleChoiceResponse.toString())
+        for(client in clients) {
+            //spin up a new thread for each client connection
+            val thread = Thread(Runnable {
+                try {
+                    //Propagate the newly-activated question for this specific client
+                    UDPClient().propagateMultipleChoiceResponse(userName.toString(), client.ip, client.port, multipleChoiceResponse)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            })
+
+            thread.start()
         }
     }
 
@@ -279,12 +328,12 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 println("Current Active question is: " + currentActiveQuestion)
             }
 
-            // Debug here. It prints out all questions in the database.
-            println("Received the following data: " + data)
-
             //First, extract the 'type' from the data's payload to determine downward processing
             val type = gson.fromJson(data, Map::class.java)["type"] as String
             val message = converter.convertToClass(type, data)
+
+            // Debug here. It prints out all questions in the database.
+            println("Received the following data type: " + type)
 
             /**
              * Defines the logic for when the received data relates to a multiple choice question.
@@ -313,7 +362,14 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 onHeartBeat(message as HeartBeat)
             }
 
-            if("multiple_choice_response" == type) {
+            if("multiple_choice_response" == type && (UserType.SERVER.equals(userType))) {
+                val multipleChoiceResponse = gson.fromJson(data, MultipleChoiceResponse::class.java)
+
+                println("RECEIVED A RESPONSE FROM A CLIENT: " + multipleChoiceResponse.toString())
+                //store the multipleChoiceResponse
+                allResponsesList?.add(multipleChoiceResponse)
+
+                println("RESPONSES RECORDED COUNT: " + allResponsesList?.size)
 
             }
         }).start()

@@ -1,6 +1,7 @@
 package com.example.myapplication.Networking
 
 import com.example.myapplication.Models.MultipleChoiceQuestion1
+import com.example.myapplication.Models.MultipleChoiceResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.net.DatagramPacket
@@ -50,6 +51,30 @@ class UDPClient: Client {
             socket.send(packet) //error here
 
             log.info("The following question has been propagated to client " + questionAsString + " " + host + " at port " + port)
+        } catch (e: Exception) {
+            println(e.toString())
+            e.printStackTrace()
+        }
+    }
+
+    override fun propagateMultipleChoiceResponse(
+        toString: String,
+        ip: String,
+        port: Int,
+        multipleChoiceResponse: MultipleChoiceResponse
+    ) {
+        val socket = DatagramSocket()
+        val multipleChoiceResponseAsString = multipleChoiceResponse.toString()
+        val questionToActivateAsByteArray = multipleChoiceResponseAsString.toByteArray(Charsets.UTF_8)
+
+        try {
+            //preparing the UDP packet for sending
+            val packet = DatagramPacket(questionToActivateAsByteArray, questionToActivateAsByteArray.size, InetAddress.getByName(ip), port)
+
+            log.info("Attempting to send the packet to the following host and port: " + ip + " " + port)
+            socket.send(packet)
+
+            log.info("The following multipleChoiceResponse has been propagated to client " + multipleChoiceResponseAsString + " " + ip + " at port " + port)
         } catch (e: Exception) {
             println(e.toString())
             e.printStackTrace()
