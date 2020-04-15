@@ -16,7 +16,7 @@ class Bully(val session: ReplicaSession){
         val clientsWithHigherIds = session.getPeersWithHigherIds()
         if (clientsWithHigherIds == null){
             session.RingLeader = session.getPeerWithId(session.peerId)
-            session.sendToReplicas(Gson().toJson(BullyCoordinatorMessage(peerId = session.peerId)))
+            becomeLeader()
         }
         else{
             for (replica in clientsWithHigherIds) {
@@ -34,7 +34,7 @@ class Bully(val session: ReplicaSession){
             }
             catch(e: TimeoutCancellationException) {
                 session.RingLeader = session.getPeerWithId(session.peerId)
-                session.sendToReplicas(Gson().toJson(BullyCoordinatorMessage(peerId = session.peerId)))
+                becomeLeader()
             }
             catch(e: CancellationException){
                 try{
@@ -58,7 +58,7 @@ class Bully(val session: ReplicaSession){
         }
         if (session.hasHighestPeerID()){
             session.RingLeader = session.getPeerWithId(session.peerId)
-            session.sendToReplicas(Gson().toJson(BullyCoordinatorMessage(peerId = session.peerId)))
+            session.sendToReplicas(Gson().toJson(BullyCoordinatorMessage(peerId = session.peerId, networkInformation = session.getInformationOnLocalNetworkInfo())))
         }
         else {
             session.sendMessage(BullyOKMessage(peerId = session.peerId).toString(), session.getPeerWithId(electionMessage.peerId))
@@ -70,13 +70,18 @@ class Bully(val session: ReplicaSession){
 
         }
     }
+
+    private fun becomeLeader(){
+        println("BECOMING LEADER")
+        session.sendToReplicas(Gson().toJson(BullyCoordinatorMessage(peerId = session.peerId, networkInformation = session.getInformationOnLocalNetworkInfo())))
+        session.assumeLeadership()
+    }
     fun onOKMessage(okMessage: BullyOKMessage){
         okReceived.getAndSet(true)
         dropOut()
     }
     fun onCoordinatorMessage(coordinatorMessage: BullyCoordinatorMessage){
-        println("A leader has been chosen")
-        session.RingLeader = session.getPeerWithId(coordinatorMessage.peerId)
+        println("A leader ${coordinatorMessage.networkInformation} has been chosen")
     }
 
     private fun dropOut(){
@@ -103,5 +108,6 @@ data class BullyOKMessage(
 
 data class BullyCoordinatorMessage(
     val type: String = "bully_coordinator",
-    val peerId: Int
+    val peerId: Int,
+    val networkInformation: NetworkInformation
 )

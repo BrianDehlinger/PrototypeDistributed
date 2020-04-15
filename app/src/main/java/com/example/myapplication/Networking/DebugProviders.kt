@@ -8,19 +8,21 @@ class DebugProviders(
     val context: Context
 ) {
     fun provideRingLeader(): NetworkInformation? {
-        if (NetworkInformation.getNetworkInfo(context = context).ip == "10.0.2.17"){
+        if (NetworkInformation.getNetworkInfo(context = context).ip == "10.0.2.17") {
             return NetworkInformation("10.0.3.1", 12345, "server")
         }
         return NetworkInformation("10.0.2.2", 5023, "server")
     }
 
     fun provideIsReplica(context: Context): Boolean {
-        return (NetworkInformation.getNetworkInfo(context).ip == "10.0.2.16" || NetworkInformation.getNetworkInfo(context).ip == "10.0.2.17")
+        return (NetworkInformation.getNetworkInfo(context).ip == "10.0.2.16" || NetworkInformation.getNetworkInfo(
+            context
+        ).ip == "10.0.2.17")
     }
 
     fun provideOtherReplicas(context: Context): MutableList<NetworkInformation> {
         val listOfNetworkInformation = mutableListOf<NetworkInformation>()
-        if (NetworkInformation.getNetworkInfo(context).ip == "10.0.2.18"){
+        if (NetworkInformation.getNetworkInfo(context).ip == "10.0.2.18") {
             listOfNetworkInformation.add(NetworkInformation("10.0.2.2", 5000, "replica"))
         }
         return listOfNetworkInformation
@@ -51,11 +53,22 @@ class DebugProviders(
             return 5023
         } else if (NetworkInformation.getNetworkInfo(context).ip == "10.0.2.16") {
             return 5000
-        } else if (NetworkInformation.getNetworkInfo(context).ip == "10.0.2.17"){
+        } else if (NetworkInformation.getNetworkInfo(context).ip == "10.0.2.17") {
             return 6000
-        }
-        else{
+        } else {
             return 7000
+        }
+    }
+
+    fun providePeersWithHigherId(context: Context): List<NetworkInformation>? {
+        if (NetworkInformation.getNetworkInfo(context).ip == "10.0.2.16") {
+            return null
+        } else if (NetworkInformation.getNetworkInfo(context).ip == "10.0.2.17") {
+            val listPeers =
+                listOf<NetworkInformation>(NetworkInformation("10.0.2.2", 5000, "replica"))
+            return listPeers
+        } else {
+            return null
         }
     }
 }
