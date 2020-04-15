@@ -186,42 +186,38 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             }
         }
 
-//        activateNextQuestionButton.setOnClickListener{
-//            //Ony the server has the power to change the active question
-//            if(UserType.SERVER.equals(userType)) { //guarding against null userType values
-//                println("PERMISSION TO ACTIVATE QUESTION GRANTED, " + userName)
-//                activateQuestion(listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX))
-//
-//                //Updating the UI:
-//                var newActiveQuestion = listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX)
-//
-//                var newActiveQuestionPrompt = newActiveQuestion.prompt
-//                var newActiveQuestionChoicesList = newActiveQuestion.choices
-//
-//                var choicesListAsString: String = ""
-//
-//                for(choice in newActiveQuestionChoicesList) {
-//                    choicesListAsString += "- " + choice + "\n"
-//                }
-//
-//                currentQuestionPromptTextView?.setText(newActiveQuestionPrompt)
-//                currentQuestionChoicesTextView?.setText(choicesListAsString)
-//
-//                CURRENT_QUESTION_INDEX++
-//
-//
-//
-//
-//
-//
-//
-//                //callActivateQuestion method
-//                activateQuestion(newActiveQuestion)
-//
-//            } else {
-//                println("YOU DONT HAVE PERMISSION TO ACTIVATE A NEW QUESTION, " + userName)
-//            }
-//        }
+        activateNextQuestionButton.setOnClickListener{
+            //Ony the server has the power to change the active question
+            var numberOfQuestions = listOfQuizQuestions?.size
+
+            if(CURRENT_QUESTION_INDEX < numberOfQuestions!!) { //guarding against null userType values
+               println("ACTIVATING THE NEXT QUESTION!")
+                activateQuestion(listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX))
+
+                //Updating the UI:
+                var newActiveQuestion = listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX)
+
+                var newActiveQuestionPrompt = newActiveQuestion.prompt
+                var newActiveQuestionChoicesList = newActiveQuestion.choices
+
+                var choicesListAsString: String = ""
+
+                for(choice in newActiveQuestionChoicesList) {
+                    choicesListAsString += "- " + choice + "\n"
+                }
+
+                currentQuestionPromptTextView?.setText(newActiveQuestionPrompt)
+                currentQuestionChoicesTextView?.setText(choicesListAsString)
+
+                CURRENT_QUESTION_INDEX++
+
+                //callActivateQuestion method
+                activateQuestion(newActiveQuestion)
+
+            } else {
+                println("NO MORE QUESTIONS TO DISPLAY! OPEN A NEW ACTIVITY TO SHOW RESULTS")
+            }
+        }
 
 
 
@@ -362,7 +358,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 onHeartBeat(message as HeartBeat)
             }
 
-            if("multiple_choice_response" == type && (UserType.SERVER.equals(userType))) {
+            if("multiple_choice_response" == type) {
                 val multipleChoiceResponse = gson.fromJson(data, MultipleChoiceResponse::class.java)
 
                 println("RECEIVED A RESPONSE FROM A CLIENT: " + multipleChoiceResponse.toString())
@@ -370,7 +366,6 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 allResponsesList?.add(multipleChoiceResponse)
 
                 println("RESPONSES RECORDED COUNT: " + allResponsesList?.size)
-
             }
         }).start()
     }

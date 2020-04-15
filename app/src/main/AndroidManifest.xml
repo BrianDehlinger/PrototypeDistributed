@@ -17,7 +17,8 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
-        <activity android:name=".Activity.JoinQuizActivity"></activity>
+        <activity android:name=".ResponsesActivity"></activity>
+        <activity android:name=".Activity.JoinQuizActivity" />
         <activity android:name=".Activity.CreateQuizActivity" />
         <activity android:name=".Activity.WelcomeActivity">
             <intent-filter>
