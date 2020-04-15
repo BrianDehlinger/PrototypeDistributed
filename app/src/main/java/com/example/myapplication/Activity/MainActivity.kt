@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Bundle
-import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.example.myapplication.DAOs.Cache
@@ -18,6 +17,7 @@ import com.example.myapplication.Networking.UDPListener
 import com.example.myapplication.Networking.UDPServer
 import com.example.myapplication.QRCodeGenerator
 import com.example.myapplication.R
+import com.example.myapplication.ResponsesActivity
 import com.google.gson.Gson
 import com.google.zxing.WriterException
 import java.util.*
@@ -216,6 +216,15 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
             } else {
                 println("NO MORE QUESTIONS TO DISPLAY! OPEN A NEW ACTIVITY TO SHOW RESULTS")
+
+                /**
+                 * Set the `nextActivity` to be the `CreateQuizActivity`
+                 */
+                //TODO: Define logic for when the user has finished creating all of the quiz's questions and is ready to start the session.
+                val intent = Intent(applicationContext, ResponsesActivity::class.java)
+
+                intent.putExtra("EXTRA_ALL_RESPONSES_LIST", allResponsesList)
+                startActivity(intent)
             }
         }
 
@@ -227,7 +236,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
             var multipleChoiceResponse: MultipleChoiceResponse = MultipleChoiceResponse(
                 "", "", submittedAnswer,
-                userName.toString(), sessionId.toString()
+                userName.toString(), sessionId.toString(), currentQuestionPromptTextView!!.text.toString()
             )
 
             //propagating the new response

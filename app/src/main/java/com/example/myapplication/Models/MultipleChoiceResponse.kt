@@ -17,7 +17,8 @@ data class MultipleChoiceResponse(
     val parent_question_id: String,
     val answer: String,
     val user_id: String,
-    val quiz_id: String
+    val quiz_id: String,
+    val prompt: String
 ) : Parcelable {
     var type: String = "multiple_choice_response"
 

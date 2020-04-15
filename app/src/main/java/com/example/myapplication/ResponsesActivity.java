@@ -15,7 +15,7 @@ public class ResponsesActivity extends AppCompatActivity {
 
     ListView listView;
 
-    //private var allResponsesList: ArrayList<MultipleChoiceResponse>? = ArrayList<MultipleChoiceResponse>()
+    private List<MultipleChoiceResponse> allResponsesList = new ArrayList<MultipleChoiceResponse>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
