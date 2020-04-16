@@ -326,16 +326,20 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
      * Handles the receipt and filtering of various message types
      */
     override fun onUDP(data: String) {
+        //First, extract the 'type' from the data's payload to determine downward processing
+        val type = gson.fromJson(data, Map::class.java)["type"] as String
+        val message = converter.convertToClass(type, data)
+
         Thread(Runnable {
             println(data)
             runOnUiThread {
-                Toast.makeText(applicationContext, data, Toast.LENGTH_SHORT).show()
+                if("hb" == type){
+                    //Show a toast message on all device screens for a heartbeat message only
+                    Toast.makeText(applicationContext, data, Toast.LENGTH_SHORT).show()
+                }
+
                 println("Current Active question is: " + currentActiveQuestion)
             }
-
-            //First, extract the 'type' from the data's payload to determine downward processing
-            val type = gson.fromJson(data, Map::class.java)["type"] as String
-            val message = converter.convertToClass(type, data)
 
             // Debug here. It prints out all questions in the database.
             println("Received the following data type: " + type)
@@ -349,10 +353,6 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 val multipleChoiceQuestion = gson.fromJson(data, MultipleChoiceQuestion1::class.java)
                 currentActiveQuestion = multipleChoiceQuestion
 
-                //Updating the `activeQuestionTextView` with the new currentActiveQuestion as
-                //a visual verification that the `currentActiveQuestion` has, in fact, been
-                //updated.
-
                 //currentActiveQuestionTextView.setText("Active Question: " + currentActiveQuestion)
                 println("A new Multiple Choice question has been activated!")
 
@@ -361,7 +361,6 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                     println("UI updating should go here")
                     updateCurrentActiveQuestionUI(multipleChoiceQuestion)
                 }
-
             }
             if ("hb" == type){
                 onHeartBeat(message as HeartBeat)
