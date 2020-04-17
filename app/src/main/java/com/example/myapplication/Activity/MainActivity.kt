@@ -20,6 +20,7 @@ import com.example.myapplication.R
 import com.example.myapplication.ResponsesActivity
 import com.google.gson.Gson
 import com.google.zxing.WriterException
+import java.io.Serializable
 import java.util.*
 import kotlin.concurrent.schedule
 
@@ -225,6 +226,11 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
                 //intent.putExtra("EXTRA_ALL_RESPONSES_LIST", allResponsesList)
                 intent.putParcelableArrayListExtra("EXTRA_ALL_RESPONSES_LIST", allResponsesList);
+                intent.putExtra(
+                    "EXTRA_LIST_OF_QUIZ_QUESTIONS", listOfQuizQuestions as Serializable
+                )
+                println("Sending the following allResponsesList: " + allResponsesList);
+                println("Sending the following questionsList: " + listOfQuizQuestions);
                 startActivity(intent)
             }
         }
