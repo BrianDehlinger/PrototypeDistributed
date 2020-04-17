@@ -123,15 +123,15 @@ Aside from setting up the Server emulator (as described above), you can configur
 
 1.a). In Android Studio, create a new emulator.  You can do this by navigating to clicking on the emulator selection drop-down and clicking on `Open AVD Manager`, as shown below:
 
-![AVD Manager drop down](resources/selectAVDManager.png)
+![AVD Manager drop down](resources/avdManager.png)
 
 1.b). Now, click on the `Create Virtual Device` button on the bottom left-hand corner of the AVD Manager dialogue box.  This will open a new dialogue box titled `Select Hardware`, where you can specify what kind of phone you want your new emulator to be. Select `Nexus 6` on the list on phones, and click `next`:
 
-![Selecting Hardware](resources/selectNexus6.png)
+![Selecting Hardware](resources/selectingHardware.png)
 
 1.c). Now, you will be redirected to a `System Image` screen where you need to specify the target API level for your device. Select API level 29 (`Q`) and click `Next`:
 
-![Selecting Hardware](resources/systemImage.png)
+![Selecting System Images](resources/selectingSystemImage.png)
 
 1.d). Finally, give your new device a name.  It may help to name the emulator `client1` or `student1`, or `client2` or `student2` since the individual client emulators will also have their own static IP's set (just like the server in the `Configuring Emulator Port-Forwarding` section); this will keep you from getting confused
 on which emulator is which client. Click on `Finish` when you're done:
@@ -140,7 +140,7 @@ on which emulator is which client. Click on `Finish` when you're done:
 
 1.e). Now, on Android Studio, click on the emulator drop-down list again. You should now see your new emulator's name (`student1` in this case).  Click on it. Now, the next time you run the Android app, the `student1` emulator will be the emulator it runs on:
 
-![Selecting Hardware](resources/newDropDown.png)
+![newDropdown](resources/newDropDown.png)
 
 
 2). Now, you'll need to configure the new emulator's static IP.  To do so, follow the following steps:
@@ -161,7 +161,7 @@ on which emulator is which client. Click on `Finish` when you're done:
 
 2.e). Populate the `IP address` section with the IP `10.0.2.17` as follows:
 
-![IP Configuration](resources/17StaticIp.png)
+![configuredIP](resources/configuredIp.png)
 
 2.f). Click on `SAVE`.
 
@@ -219,7 +219,7 @@ redir add udp:5026:6000
 - Student1 (aka Client1): `redir add udp:5023:6000`
 - Student2 (aka Client2): `redir add udp:5026:6000`
 
-# Static IP Setup & Configuring Port Forwarding TLDR was T
+# Static IP Setup & Configuring Port Forwarding Condensed
 ```bash
 ADB Redirection Command | Emulator instance ID | Emulator Static IP
 
