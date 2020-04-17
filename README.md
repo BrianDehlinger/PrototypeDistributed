@@ -219,7 +219,7 @@ redir add udp:5026:6000
 - Student1 (aka Client1): `redir add udp:5023:6000`
 - Student2 (aka Client2): `redir add udp:5026:6000`
 
-# Static IP Setup & Configuring Port Forwarding TLDR Condensed
+# Static IP Setup & Configuring Port Forwarding TLDR was T
 ```bash
 ADB Redirection Command | Emulator instance ID | Emulator Static IP
 
