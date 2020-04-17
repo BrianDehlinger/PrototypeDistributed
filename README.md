@@ -136,7 +136,7 @@ Aside from setting up the Server emulator (as described above), you can configur
 1.d). Finally, give your new device a name.  It may help to name the emulator `client1` or `student1`, or `client2` or `student2` since the individual client emulators will also have their own static IP's set (just like the server in the `Configuring Emulator Port-Forwarding` section); this will keep you from getting confused
 on which emulator is which client. Click on `Finish` when you're done:
 
-![Selecting Hardware](resources/student1Emulator.png)
+![StudentEmulator](resources/student1Emulator.png)
 
 1.e). Now, on Android Studio, click on the emulator drop-down list again. You should now see your new emulator's name (`student1` in this case).  Click on it. Now, the next time you run the Android app, the `student1` emulator will be the emulator it runs on:
 
