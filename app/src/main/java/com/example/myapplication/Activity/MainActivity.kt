@@ -223,7 +223,8 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 //TODO: Define logic for when the user has finished creating all of the quiz's questions and is ready to start the session.
                 val intent = Intent(applicationContext, ResponsesActivity::class.java)
 
-                intent.putExtra("EXTRA_ALL_RESPONSES_LIST", allResponsesList)
+                //intent.putExtra("EXTRA_ALL_RESPONSES_LIST", allResponsesList)
+                intent.putParcelableArrayListExtra("EXTRA_ALL_RESPONSES_LIST", allResponsesList);
                 startActivity(intent)
             }
         }
