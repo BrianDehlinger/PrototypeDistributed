@@ -1,7 +1,9 @@
 package com.example.myapplication.Networking
 
+import com.example.myapplication.Models.ElectionNotification
 import com.example.myapplication.Models.MultipleChoiceQuestion1
 import com.example.myapplication.Models.MultipleChoiceResponse
+import com.example.myapplication.Models.NewServerNotification
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.net.DatagramPacket
@@ -80,5 +82,62 @@ class UDPClient: Client {
             e.printStackTrace()
         }
     }
+
+    /**
+     * TODO: Add a more thorough description.
+     * To be activated by the first non-Server client to determine that the current Server is
+     * not responsive.
+     * */
+    override fun propagateNewElectionNotification(electionNotification: ElectionNotification,
+                                                ip: String, port: Int) {
+        val socket = DatagramSocket()
+        val electionNotificationAsString = electionNotification.toString()
+        val electionNotificationAsByteArray
+                = electionNotificationAsString.toByteArray(Charsets.UTF_8)
+
+        try {
+            //preparing the UDP packet for sending
+            val packet = DatagramPacket(electionNotificationAsByteArray,
+                electionNotificationAsByteArray.size, InetAddress.getByName(ip), port)
+
+            socket.send(packet)
+
+            log.info("The electionNotification has been propagated to client. \n "
+                    + electionNotificationAsString + " \n" + ip + " at port " + port)
+
+        } catch (e: Exception) {
+            println(e.toString())
+            e.printStackTrace()
+        }
+    }
+
+    /***
+     * Will notify all clients that a new server has been elected. The newServerNotification
+     * object will contain the new server's details.
+     */
+    override fun propagateNewServerNotification(newServerNotification: NewServerNotification,
+                                                ip: String, port: Int) {
+
+        val socket = DatagramSocket()
+        val newServerNotification = newServerNotification.toString()
+        val newServerNotificationAsByteArray
+                = newServerNotification.toByteArray(Charsets.UTF_8)
+
+        try {
+            //preparing the UDP packet for sending
+            val packet = DatagramPacket(newServerNotificationAsByteArray,
+                newServerNotificationAsByteArray.size, InetAddress.getByName(ip), port)
+
+            socket.send(packet)
+
+            log.info("The newServerNotification has been propagated to client. \n "
+                    + newServerNotification + " \n" + ip + " at port " + port)
+
+        } catch (e: Exception) {
+            println(e.toString())
+            e.printStackTrace()
+        }
+    }
+
 }
 

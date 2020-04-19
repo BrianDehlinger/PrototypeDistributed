@@ -18,6 +18,7 @@ import com.example.myapplication.Networking.UDPServer
 import com.example.myapplication.QRCodeGenerator
 import com.example.myapplication.R
 import com.example.myapplication.ResponsesActivity
+import com.google.common.collect.Sets
 import com.google.gson.Gson
 import com.google.zxing.WriterException
 import java.io.Serializable
@@ -61,6 +62,41 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
 
     private var allResponsesList: ArrayList<MultipleChoiceResponse>? = ArrayList<MultipleChoiceResponse>()
+
+
+    //For BullyAlgorithm
+    var clientsMap : HashMap<Double, String> = HashMap<Double, String> () //userId(Key) & userName(Value)
+    var userId = Math.random() //generates a random Double between 0 and 1
+    var currentServerId: Double? = null
+    var currentServerUserName: String? = null
+
+    var heartbeatsReceivedInCurrentRound = 0
+    val LIVENESS_THRESHOLD = 3
+    var electionInProgress: Boolean = false
+
+    /**
+     * TODO: Document more thoroughly.
+     * Will keep track of how many times each client in the session has emmitted a heartbeat.
+     * This includes the Server. This will be helpful for determining whether a Server has
+     * gone down, and for determining the Server's livenessStatus.
+     * */
+    var livenessCheckRound = 0
+
+    /**
+     * TODO: Document more thoroughly.
+     * Will record the `livenessCheckRound` since the Server last emitted a heartbeat.
+     * This will be used to calculate the Server's livenessStatus (which will be done
+     * by all the non-Server clients).  This will also determine whether an election
+     * for a new server needs to occur.
+     * */
+    var livenessCheckRoundSinceServerLastSeen = 0
+
+    /**
+     * TODO: Document more thoroughly.
+     * GREEN as default. Will be reset to GREEN when a new server gets elected.
+     * */
+    var currentServerLivenessStatus = LivenessStatus.GREEN
+
 
     val clients = arrayListOf<NetworkInformation>().also{
         it.add(clientOne)
@@ -137,7 +173,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         currentQuestionPromptTextView = findViewById<TextView>(R.id.mainActivity_activeQuestionPromptTextView)
         currentQuestionChoicesTextView = findViewById<TextView>(R.id.mainActivity_activeQuestionChoicesTextView)
 
-        Timer("Heartbeat", false).schedule(100, 30000){
+        Timer("Heartbeat", false).schedule(100, 10000){
             emitHeartBeat()
         }
 
@@ -328,6 +364,40 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         }
     }
 
+    private fun propagateNewElectionNotification(electionNotification: ElectionNotification) {
+        println("ABOUT TO PROPAGATE THE FOLLOWING ElectionNotification OBJECT: " + electionNotification.toString())
+        for(client in clients) {
+            //spin up a new thread for each client connection
+            val thread = Thread(Runnable {
+                try {
+                    //Propagate the electionNotification for this specific client
+                    UDPClient().propagateNewElectionNotification(electionNotification, client.ip, client.port)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            })
+
+            thread.start()
+        }
+    }
+
+    private fun propagateNewServerNotification(newServerNotification: NewServerNotification) {
+        println("ABOUT TO PROPAGATE THE FOLLOWING NewServerNotification OBJECT: " + newServerNotification.toString())
+        for(client in clients) {
+            //spin up a new thread for each client connection
+            val thread = Thread(Runnable {
+                try {
+                    //Propagate the electionNotification for this specific client
+                    UDPClient().propagateNewServerNotification(newServerNotification, client.ip, client.port)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            })
+
+            thread.start()
+        }
+    }
+
 
     /**
      * Handles the receipt and filtering of various message types
@@ -371,6 +441,14 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             }
             if ("hb" == type){
                 onHeartBeat(message as HeartBeat)
+
+
+                if(UserType.SERVER.equals(userType)) {
+                    println("I AM THE SERVERRRRRRRRR")
+                } else {
+                    println("I AM A CLIENTTTTTTT!!")
+                }
+
             }
 
             if("multiple_choice_response" == type) {
@@ -382,6 +460,18 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
                 println("RESPONSES RECORDED COUNT: " + allResponsesList?.size)
             }
+
+            if("election_notification" == type && !electionInProgress) {
+                /**
+                 * Someone has determined that the server has left the session. These values
+                 * will be re-populated once a new Server identifies itself and emits a
+                 * heartbeat message.
+                 * */
+                currentServerId = null
+                currentServerUserName = null
+                electionInProgress = true
+            }
+
         }).start()
     }
 
@@ -421,7 +511,9 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         println("Emitting heartbeat")
         Thread(Runnable{
             for (client in clients){
-                val heartbeat = HeartBeat(ip = networkInformation!!.ip, port = networkInformation!!.port.toString())
+                val heartbeat = userType?.let { HeartBeat(ip = networkInformation!!.ip, port = networkInformation!!.port.toString(),
+                    userType = userType!!,  userName = userName!!, userId = userId) }
+
                 UDPClient().sendMessage(gson.toJson(heartbeat), client.ip, client.port)
             }
         }).start()
@@ -461,7 +553,200 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
     override fun onHeartBeat(heartBeat: HeartBeat) {
         clientMonitor[NetworkInformation(heartBeat.ip, heartBeat.port.toInt(), "client")] = "Yellow"
-        println(clientMonitor)
+
+        if(currentServerId == null && UserType.SERVER.equals(heartBeat.userType)) {
+            /**
+             * This device has just received a heartbeat message from the current Server. Identify its ID
+             * as such.
+             * */
+            currentServerId = heartBeat.userId
+            currentServerUserName = heartBeat.userName
+
+            livenessCheckRound = 0
+            livenessCheckRoundSinceServerLastSeen = 0
+            electionInProgress = false
+
+            println("A new Server has been elected.")
+        }
+
+        println("Current Server Metadata: \n"
+                + "Username: " + currentServerUserName + "\n"
+                + "ID: " + currentServerId)
+
+
+        recordClientHeartBeat(heartBeat.userId, heartBeat.userName)
+
+    }
+
+    //for determining whether a new client has joined the session & managing the liveness data
+    fun recordClientHeartBeat(userId: Double, userName: String) {
+        if(!clientsMap.containsKey(userId)) {
+            /**
+             * The map does not contain the userId, so add it. Since adding a new client throws off
+             * the liveness counts, reset the counts back to 0 so it doesn't erroneously affect the
+             * currentServer's livenessStatus.
+             * */
+            clientsMap.put(userId, userName)
+
+            //reset the livenessCheck data
+            livenessCheckRound = 0
+            livenessCheckRoundSinceServerLastSeen = 0
+        } else if(userId.equals(currentServerId)) {
+            /**
+             * The map already contained the userId for which we received a heartbeat message.
+             * If this heartbeatMessage belongs to the currentServer, update
+             * the `livenessCheckRoundSinceServerLastSeen` value to the currentValue of the
+             * `livenessCheckRound`.
+             * */
+            livenessCheckRoundSinceServerLastSeen = livenessCheckRound
+
+            //reset the heartbeatsReceivedInCurrentRound count to begin a new livenessCheckRound
+            heartbeatsReceivedInCurrentRound = 0
+
+            //begin a new livenessCheckRound
+            livenessCheckRound++
+        } else if (LivenessStatus.RED.equals(currentServerLivenessStatus) && !electionInProgress) {
+            /**
+             * An election needs to be had. Initiate it.
+             * */
+            println("CALLING FOR A NEW LEADERRRRRRRRRRRRRRRRRRRRRRRRRRRRR!!!!")
+
+            /***
+             * All clients need to be notified that a new Server is about to be elected.
+             * First, an `ElectionNotification` object needs to be created. This object
+             * simply holds metadata on the client that is emitting this ElectionNotification.
+             * This information will be sent to each client so that each client can reset their
+             * `currentServer` value, and expect to receive a `NewServerNotification`.
+             */
+            var electionNotification: ElectionNotification = ElectionNotification(userName, userId)
+
+            /**Notify all clients that a new Server is about to be elected.*/
+            propagateNewElectionNotification(electionNotification)
+
+            //TODO: Inquire as to whether this client is the successor.
+            if(iAmSuccessor()) {
+                /**This client has determined that it holds the next highest userId.
+                 * Set the currentServerUserName, serverId, and liveness stat values accordingly.
+                 * */
+                currentServerUserName = userName
+                currentServerId = userId
+                currentServerLivenessStatus = LivenessStatus.GREEN
+
+                //reset the livenessCheck data
+                livenessCheckRound = 0
+                livenessCheckRoundSinceServerLastSeen = 0
+
+                /**Finally, make it official*/
+                userType = UserType.SERVER
+
+                /**
+                 * Now, the rest of the clients will be notified that a new server has identified
+                 * itself when this client emits a heartbeat message.
+                 * */
+
+                //TODO: propagateNewServerNotification (might not be needed. The hb msg does this)
+            } else {
+                /**I am not the successor. Await a heartbeat from the person who is.*/
+                currentServerUserName = null
+
+                currentServerId = null
+                electionInProgress = true
+            }
+
+        }
+        else if(heartbeatsReceivedInCurrentRound > clientsMap.size) {
+
+            /**
+             * The heartbeat did NOT belong to either a new client, nor the currentServer.
+             * But the heartbeatCount has already recorded more heartbeats than the current
+             * size of the registered clients, and the current serverLivenessStatus is NOT RED.
+             *
+             * This means a heartbeat from the Server has not reset the
+             * `heartbeatsReceivedInCurrentRound` count because no server heartbeat has been
+             * received.
+             *
+             * increment the `heartbeatsReceivedInCurrentRound`, then calculate the server's new
+             * LivenessStatus accordingly.
+             * */
+            heartbeatsReceivedInCurrentRound++
+
+            currentServerLivenessStatus = determineServerLivenessStatus()
+        } else {
+            /**
+             * Nothing new, just received a heartbeat from an existing client,
+             * and the server is not MIA.
+             */
+            heartbeatsReceivedInCurrentRound++
+        }
+
+        println("LivenessCheckRound: " + livenessCheckRound)
+        println("livenessCheckRoundSinceServerLastSeen: " + livenessCheckRoundSinceServerLastSeen)
+        println("heartbeatsReceivedInCurrentRound: " + heartbeatsReceivedInCurrentRound)
+        println("clientsMap.size: " + clientsMap.size)
+        println("currentServerLivenessStatus: " + currentServerLivenessStatus)
+    }
+
+    fun iAmSuccessor(): Boolean {
+
+        /**
+         * verdict:
+         *
+         * tue = I hold the next highest userId
+         * false = someone else holds the next highest userId
+         * */
+        var verdict: Boolean = false
+
+        /**First, remove the currentServer's userId from the map*/
+        clientsMap.remove(currentServerId)
+
+        /**Now, taking all of the remaining cliendId values and converting them into an Array*/
+        val clientIds: Array<Double> = clientsMap.keys.toTypedArray<Double>()
+
+        /**Sort the clientIds.The first index will be the highest Id, it will be the successor*/
+        clientIds.sort()
+
+        var successorId: Double = clientIds.get(0)
+
+        println("list if clientIds: " + clientIds)
+
+        println("THE SUCCESSOR SHOULD BE: \n ID: " + successorId + " \n UserName: " + clientsMap.get(successorId))
+
+        /**If the successorId matches this client's userId, this userId is the election winner.*/
+        if(userId.equals(successorId)) {
+            verdict = true
+        }
+
+        return verdict
+    }
+
+    //calculates the appropriate liveness status fr the server
+    private fun determineServerLivenessStatus(): LivenessStatus {
+        var verdict: LivenessStatus? = null
+        var roundsSinceServerLastSeen = livenessCheckRound - livenessCheckRoundSinceServerLastSeen
+
+        //A full iteration of liveness checks have occured and the server did not send one.
+        //Increment the `livenessCheckRound` count. eventually, this livenessCheckRound will
+        //cross the LIVENESS_THRESHOLD, triggering a new election
+        if(heartbeatsReceivedInCurrentRound % clientsMap.size == 0) {
+            livenessCheckRound++
+        }
+
+        if(roundsSinceServerLastSeen < LIVENESS_THRESHOLD) {
+            /**
+             * The server has been MIA for a while, but not long enough to meet the LIVENESS_THRESHOLD.
+             * Set the LivenessStatus to YELLOW to indicate that something's fishy, but not so fishy
+             * as to warrant an election.
+             * */
+            verdict = LivenessStatus.YELLOW
+        } else {
+            /**
+             * The server has been MIA for the max LIVENESS_THRESHOLD iterations limit. At this point, the
+             * server is probably gone, and elections need to be had.
+             * */
+            verdict = LivenessStatus.RED
+        }
+
+        return verdict
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
