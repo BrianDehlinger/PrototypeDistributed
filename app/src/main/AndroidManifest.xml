@@ -21,16 +21,17 @@
         <activity android:name=".Activity.JoinQuizActivity" />
         <activity android:name=".Activity.CreateQuizActivity" />
         <activity android:name=".Activity.WelcomeActivity">
+        </activity>
+        <activity android:name=".Activity.BrowseQuestions" />
+        <activity android:name=".Activity.AnswerQuestionActivity" />
+        <activity android:name=".Activity.CreateQuestionActivity" />
+        <activity android:name=".Activity.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".Activity.BrowseQuestions" />
-        <activity android:name=".Activity.AnswerQuestionActivity" />
-        <activity android:name=".Activity.CreateQuestionActivity" />
-        <activity android:name=".Activity.MainActivity" />
     </application>
 
 </manifest>
