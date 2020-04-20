@@ -71,7 +71,6 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
     var heartbeatsReceivedInCurrentRound = 0
     val LIVENESS_THRESHOLD = 3
-    //var electionInProgress: Boolean = false
 
     /**
      * TODO: Document more thoroughly.
@@ -259,7 +258,6 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 //TODO: Define logic for when the user has finished creating all of the quiz's questions and is ready to start the session.
                 val intent = Intent(applicationContext, ResponsesActivity::class.java)
 
-                //intent.putExtra("EXTRA_ALL_RESPONSES_LIST", allResponsesList)
                 intent.putParcelableArrayListExtra("EXTRA_ALL_RESPONSES_LIST", allResponsesList);
                 intent.putExtra(
                     "EXTRA_LIST_OF_QUIZ_QUESTIONS", listOfQuizQuestions as Serializable
@@ -460,17 +458,6 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 println("RESPONSES RECORDED COUNT: " + allResponsesList?.size)
             }
 
-//            if("election_notification" == type) {
-//                /**
-//                 * Someone has determined that the server has left the session. These values
-//                 * will be re-populated once a new Server identifies itself and emits a
-//                 * heartbeat message.
-//                 * */
-//                currentServerId = null
-//                currentServerUserName = null
-//                //electionInProgress = true
-//            }
-
         }).start()
     }
 
@@ -563,7 +550,6 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
             livenessCheckRound = 0
             livenessCheckRoundSinceServerLastSeen = 0
-            //electionInProgress = false
             currentServerLivenessStatus = LivenessStatus.GREEN
 
             println("A new Server has been elected.")
@@ -649,7 +635,6 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                  * itself when this client emits a heartbeat message.
                  * */
 
-                //TODO: propagateNewServerNotification (might not be needed. The hb msg does this)
             } else {
                 /**I am not the successor. Await a heartbeat from the person who is.*/
                 currentServerUserName = null
