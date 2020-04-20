@@ -197,7 +197,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         activateQuizButton.setOnClickListener{
             //Ony the server has the power to change the active question
             if(UserType.SERVER.equals(userType)) { //guarding against null userType values
-                println("PERMISSION TO ACTIVATE QUESTION GRANTED, " + userName)
+                println("PERMISSION TO ACTIVATE QUIZ GRANTED, " + userName)
 
                 println("activateQuiz: listOfQuizQuestions?.size: " + listOfQuizQuestions?.size)
                 println("activateQuiz: quiz.questions.size: " + quiz!!.questions.size)
@@ -416,9 +416,15 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             println(data)
             runOnUiThread {
                 if("hb" == type){
+
                     //Show a toast message on all device screens for a heartbeat message only
-                    Toast.makeText(applicationContext, "Server Health Status: "
-                            + currentServerLivenessStatus, Toast.LENGTH_SHORT).show()
+                    if(UserType.SERVER == userType) {
+                        Toast.makeText(applicationContext, "You are the Server", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(applicationContext, "Server (" + currentServerUserName + ") Liveness Status: "
+                                + currentServerLivenessStatus, Toast.LENGTH_SHORT).show()
+                    }
+
                 }
 
                 println("Current Active question is: " + currentActiveQuestion)
@@ -498,7 +504,19 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
      * toast message in each of the individual devices.
      */
     private fun emitHeartBeat(){
-        println("Emitting heartbeat")
+        println(
+        "=====================================================================" + "\n"
+        +"MY USERNAME: " + userName + "\n"
+        + "My ID: " + userId + "\n"
+        + "My UserType: " + userType + "\n"
+        + "CurrentServerUsername: " + currentServerUserName + "\n"
+        + "CurrentServerID: " + currentServerId + "\n"
+        + "CurrentServerLivenessStatus: " + currentServerLivenessStatus + "\n"
+        + "Total clients in session: " + clientsMap.size + "\n"
+        + "Clients Map: " + clientsMap + "\n"
+        + "===================================================================="
+        )
+
         Thread(Runnable{
             for (client in clients){
 
@@ -530,6 +548,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             val thread = Thread(Runnable {
                 try {
                     //Propagate the newly-activated question for this specific client
+                    println("SENDING THE NEXT ACTIVE QUESTION TO client running at port: " + client.port)
                     UDPClient().activateQuestion(instructorUserName, client.ip, client.port, questionToActivate)
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -639,6 +658,10 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 /**This client has determined that it holds the next highest userId.
                  * Set the currentServerUserName, serverId, and liveness stat values accordingly.
                  * */
+
+                println("iAmSuccessor currentServerUserName: " + currentServerUserName + " \n currentServerId: " + currentServerId)
+                println("iAmSuccessor userName: " + userName + " \n userId: " + userId)
+
                 currentServerUserName = userName
                 currentServerId = userId
 
@@ -729,10 +752,12 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         println("THE SUCCESSOR SHOULD BE: \n ID: " + successorId + " \n UserName: " + successorUserName)
 
         /**If the successorId matches this client's userId, this userId is the election winner.*/
-        if(userId.equals(successorId)) {
+        if(userId == successorId) {
             verdict = true
+            println("successorId is " + successorId + ", and matches myId of: " + userId)
         }
 
+        println("Returning verdict: " + verdict)
         return verdict
     }
 
