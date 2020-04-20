@@ -18,7 +18,6 @@ import com.example.myapplication.Networking.UDPServer
 import com.example.myapplication.QRCodeGenerator
 import com.example.myapplication.R
 import com.example.myapplication.ResponsesActivity
-import com.google.common.collect.Sets
 import com.google.gson.Gson
 import com.google.zxing.WriterException
 import java.io.Serializable
@@ -72,7 +71,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
     var heartbeatsReceivedInCurrentRound = 0
     val LIVENESS_THRESHOLD = 3
-    var electionInProgress: Boolean = false
+    //var electionInProgress: Boolean = false
 
     /**
      * TODO: Document more thoroughly.
@@ -461,16 +460,16 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 println("RESPONSES RECORDED COUNT: " + allResponsesList?.size)
             }
 
-            if("election_notification" == type && !electionInProgress) {
-                /**
-                 * Someone has determined that the server has left the session. These values
-                 * will be re-populated once a new Server identifies itself and emits a
-                 * heartbeat message.
-                 * */
-                currentServerId = null
-                currentServerUserName = null
-                electionInProgress = true
-            }
+//            if("election_notification" == type) {
+//                /**
+//                 * Someone has determined that the server has left the session. These values
+//                 * will be re-populated once a new Server identifies itself and emits a
+//                 * heartbeat message.
+//                 * */
+//                currentServerId = null
+//                currentServerUserName = null
+//                //electionInProgress = true
+//            }
 
         }).start()
     }
@@ -564,7 +563,8 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
             livenessCheckRound = 0
             livenessCheckRoundSinceServerLastSeen = 0
-            electionInProgress = false
+            //electionInProgress = false
+            currentServerLivenessStatus = LivenessStatus.GREEN
 
             println("A new Server has been elected.")
         }
@@ -605,7 +605,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
             //begin a new livenessCheckRound
             livenessCheckRound++
-        } else if (LivenessStatus.RED.equals(currentServerLivenessStatus) && !electionInProgress) {
+        } else if (LivenessStatus.RED.equals(currentServerLivenessStatus)) {
             /**
              * An election needs to be had. Initiate it.
              * */
@@ -621,7 +621,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             var electionNotification: ElectionNotification = ElectionNotification(userName, userId)
 
             /**Notify all clients that a new Server is about to be elected.*/
-            propagateNewElectionNotification(electionNotification)
+            //propagateNewElectionNotification(electionNotification)
 
             //TODO: Inquire as to whether this client is the successor.
             if(iAmSuccessor()) {
@@ -630,14 +630,19 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                  * */
                 currentServerUserName = userName
                 currentServerId = userId
-                currentServerLivenessStatus = LivenessStatus.GREEN
 
                 //reset the livenessCheck data
                 livenessCheckRound = 0
                 livenessCheckRoundSinceServerLastSeen = 0
+                heartbeatsReceivedInCurrentRound = 0
 
                 /**Finally, make it official*/
                 userType = UserType.SERVER
+                currentServerLivenessStatus = LivenessStatus.GREEN
+
+                println("I AM THE SUCCESSOR!")
+
+                println("----> currentServerUserName has been updated to: " + currentServerUserName + " serverId: " + currentServerId + "currentServerStatus: " + currentServerLivenessStatus)
 
                 /**
                  * Now, the rest of the clients will be notified that a new server has identified
@@ -650,11 +655,13 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 currentServerUserName = null
 
                 currentServerId = null
-                electionInProgress = true
+                //electionInProgress = true
+
+                println("I AM NOT THE SUCCESSOR.")
             }
 
         }
-        else if(heartbeatsReceivedInCurrentRound > clientsMap.size) {
+        else if(heartbeatsReceivedInCurrentRound > clientsMap.size && currentServerUserName != null) {
 
             /**
              * The heartbeat did NOT belong to either a new client, nor the currentServer.
@@ -700,16 +707,15 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         clientsMap.remove(currentServerId)
 
         /**Now, taking all of the remaining cliendId values and converting them into an Array*/
-        val clientIds: Array<Double> = clientsMap.keys.toTypedArray<Double>()
-
-        /**Sort the clientIds.The first index will be the highest Id, it will be the successor*/
-        clientIds.sort()
-
-        var successorId: Double = clientIds.get(0)
+        val clientIds = clientsMap.keys
 
         println("list if clientIds: " + clientIds)
 
-        println("THE SUCCESSOR SHOULD BE: \n ID: " + successorId + " \n UserName: " + clientsMap.get(successorId))
+        /**Identify the highest Id, it will be the successor*/
+        var successorId = clientIds.max()
+        var successorUserName = clientsMap.get(successorId)
+
+        println("THE SUCCESSOR SHOULD BE: \n ID: " + successorId + " \n UserName: " + successorUserName)
 
         /**If the successorId matches this client's userId, this userId is the election winner.*/
         if(userId.equals(successorId)) {
