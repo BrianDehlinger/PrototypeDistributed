@@ -59,7 +59,6 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
     // The actual persisted database!
     private var repository: RepositoryImpl? = null
 
-
     private var allResponsesList: ArrayList<MultipleChoiceResponse>? = ArrayList<MultipleChoiceResponse>()
 
 
@@ -71,6 +70,8 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
     var heartbeatsReceivedInCurrentRound = 0
     val LIVENESS_THRESHOLD = 3
+
+    var quiz: Quiz1? = null
 
     /**
      * TODO: Document more thoroughly.
@@ -123,6 +124,10 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
             val i = intent
             listOfQuizQuestions = intent.getSerializableExtra("EXTRA_LIST_OF_QUIZ_QUESTIONS") as ArrayList<MultipleChoiceQuestion1>
+
+            //craft the quiz.  TODO should be moved to another method.
+            quiz = Quiz1(UUID.randomUUID(), quizName!!, listOfQuizQuestions!!)
+            listOfQuizQuestions = quiz!!.questions
 
             println("received the following listOfQuestions size: ")
             println(listOfQuizQuestions!!.size)
@@ -193,8 +198,9 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             //Ony the server has the power to change the active question
             if(UserType.SERVER.equals(userType)) { //guarding against null userType values
                 println("PERMISSION TO ACTIVATE QUESTION GRANTED, " + userName)
-                activateQuestion(listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX))
 
+                println("activateQuiz: listOfQuizQuestions?.size: " + listOfQuizQuestions?.size)
+                println("activateQuiz: quiz.questions.size: " + quiz!!.questions.size)
 
                 //Updating the UI:
                 var newActiveQuestion = listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX)
@@ -225,9 +231,10 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             //Ony the server has the power to change the active question
             var numberOfQuestions = listOfQuizQuestions?.size
 
+            println("activateNextQuestion: listOfQuizQuestions?.size: " + listOfQuizQuestions?.size)
+            println("activateNextQuestion: quiz.questions.size: " + quiz!!.questions.size)
+
             if(CURRENT_QUESTION_INDEX < numberOfQuestions!!) { //guarding against null userType values
-               println("ACTIVATING THE NEXT QUESTION!")
-                activateQuestion(listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX))
 
                 //Updating the UI:
                 var newActiveQuestion = listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX)
@@ -247,6 +254,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 CURRENT_QUESTION_INDEX++
 
                 //callActivateQuestion method
+                println("ACTIVATING THE NEXT QUESTION")
                 activateQuestion(newActiveQuestion)
 
             } else {
@@ -409,7 +417,8 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             runOnUiThread {
                 if("hb" == type){
                     //Show a toast message on all device screens for a heartbeat message only
-                    Toast.makeText(applicationContext, data, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(applicationContext, "Server Health Status: "
+                            + currentServerLivenessStatus, Toast.LENGTH_SHORT).show()
                 }
 
                 println("Current Active question is: " + currentActiveQuestion)
@@ -430,6 +439,10 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 //currentActiveQuestionTextView.setText("Active Question: " + currentActiveQuestion)
                 println("A new Multiple Choice question has been activated!")
 
+                if(UserType.CLIENT.equals(userType)) {
+                    CURRENT_QUESTION_INDEX++
+                }
+
                 //UI updating logic goes here
                 runOnUiThread{
                     println("UI updating should go here")
@@ -446,6 +459,8 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                     println("I AM A CLIENTTTTTTT!!")
                 }
 
+                println("CURRENT QUESTION_INDEX is: " + CURRENT_QUESTION_INDEX)
+                println("RESPONSES RECORDED COUNT: " + allResponsesList?.size)
             }
 
             if("multiple_choice_response" == type) {
@@ -454,21 +469,10 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 println("RECEIVED A RESPONSE FROM A CLIENT: " + multipleChoiceResponse.toString())
                 //store the multipleChoiceResponse
                 allResponsesList?.add(multipleChoiceResponse)
-
-                println("RESPONSES RECORDED COUNT: " + allResponsesList?.size)
             }
 
         }).start()
     }
-
-
-
-
-
-
-
-
-
 
 
     private fun updateCurrentActiveQuestionUI(newActiveQuestion1: MultipleChoiceQuestion1) {
@@ -497,8 +501,18 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         println("Emitting heartbeat")
         Thread(Runnable{
             for (client in clients){
-                val heartbeat = userType?.let { HeartBeat(ip = networkInformation!!.ip, port = networkInformation!!.port.toString(),
-                    userType = userType!!,  userName = userName!!, userId = userId) }
+
+                var heartbeat: HeartBeat? = null
+
+                //if I am server, send a copy of the quiz
+                if(UserType.SERVER.equals(userType)) {
+                    println("I'm server, sending a copy of the quiz.")
+                    heartbeat = userType?.let { HeartBeat(ip = networkInformation!!.ip, port = networkInformation!!.port.toString(),
+                        userType = userType!!,  userName = userName!!, userId = userId, quiz = quiz) }
+                } else {
+                    heartbeat = userType?.let { HeartBeat(ip = networkInformation!!.ip, port = networkInformation!!.port.toString(),
+                        userType = userType!!,  userName = userName!!, userId = userId) }
+                }
 
                 UDPClient().sendMessage(gson.toJson(heartbeat), client.ip, client.port)
             }
@@ -540,6 +554,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
     override fun onHeartBeat(heartBeat: HeartBeat) {
         clientMonitor[NetworkInformation(heartBeat.ip, heartBeat.port.toInt(), "client")] = "Yellow"
 
+
         if(currentServerId == null && UserType.SERVER.equals(heartBeat.userType)) {
             /**
              * This device has just received a heartbeat message from the current Server. Identify its ID
@@ -555,10 +570,20 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             println("A new Server has been elected.")
         }
 
+        /**
+         * Every client will have a copy of the entire quiz. it will be
+         * received from the Server.  Store it if the quiz value is null.
+         * */
+        if(UserType.SERVER.equals(heartBeat.userType) && quiz == null) {
+            quiz = heartBeat.quiz
+            listOfQuizQuestions = quiz!!.questions
+        }
+
         println("Current Server Metadata: \n"
                 + "Username: " + currentServerUserName + "\n"
                 + "ID: " + currentServerId)
 
+        println("quiz is: " + quiz.toString())
 
         recordClientHeartBeat(heartBeat.userId, heartBeat.userName)
 
@@ -690,11 +715,12 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
         /**First, remove the currentServer's userId from the map*/
         clientsMap.remove(currentServerId)
+        println("map without former server: " + clientsMap)
 
         /**Now, taking all of the remaining cliendId values and converting them into an Array*/
         val clientIds = clientsMap.keys
 
-        println("list if clientIds: " + clientIds)
+        println("list of clientIds: " + clientIds)
 
         /**Identify the highest Id, it will be the successor*/
         var successorId = clientIds.max()

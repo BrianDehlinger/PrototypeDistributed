@@ -6,5 +6,6 @@ data class HeartBeat(
     val port: String,
     val userType: UserType,
     val userName: String,
-    val userId: Double
+    val userId: Double,
+    val quiz: Quiz1? = null
 )
