@@ -1,110 +1,113 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/linear_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     tools:context="com.example.myapplication.Activity.MainActivity">
 
     <TextView
         android:id="@+id/mainActivity_sessionIdTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="206dp"
+        android:layout_height="21dp"
         android:layout_centerHorizontal="true"
-        />
+        android:textAlignment="center"
+        app:layout_constraintBottom_toTopOf="@+id/userMetadata"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/userMetadata"
+        android:layout_width="206dp"
+        android:layout_height="21dp"
+        android:layout_below="@id/browse_questions"
+        android:textAlignment="center"
+        app:layout_constraintBottom_toTopOf="@+id/generate_connection_qr_button"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/mainActivity_sessionIdTextView" />
 
     <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
         android:id="@+id/generate_connection_qr_button"
-        android:text="@string/generate_connection_qr_code"
-        android:layout_marginTop="10dp"
-        android:layout_below="@id/mainActivity_sessionIdTextView"
-        />
-
-    <ImageView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:id="@+id/iv"
-        android:layout_below="@id/generate_connection_qr_button"
-        />
+        android:layout_below="@id/mainActivity_sessionIdTextView"
+        android:text="@string/generate_connection_qr_code"
+        app:layout_constraintBottom_toTopOf="@+id/browse_questions"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/userMetadata" />
 
     <Button
         android:id="@+id/browse_questions"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/browse_questions"
-        android:layout_below="@id/iv"/>
-
-    <TextView
-        android:id="@+id/userMetadata"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/browse_questions"/>
-
-    <TextView
-        android:id="@+id/currentActiveQuestionTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/userMetadata"
-        />
+        app:layout_constraintBottom_toTopOf="@+id/activateQuizButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/generate_connection_qr_button" />
 
     <Button
         android:id="@+id/activateQuizButton"
-        android:layout_width="match_parent"
+        android:layout_width="411dp"
         android:layout_height="wrap_content"
-        android:layout_below="@id/currentActiveQuestionTextView"
-        android:text="Activate Quiz"/>
+        android:text="Activate Quiz"
+        app:layout_constraintBottom_toTopOf="@+id/activateNextQuestionButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/browse_questions" />
 
     <Button
         android:id="@+id/activateNextQuestionButton"
-        android:layout_width="match_parent"
+        android:layout_width="411dp"
         android:layout_height="wrap_content"
         android:layout_below="@id/activateQuizButton"
-        android:text="Activate next question"/>
+        android:text="Activate next question"
+        app:layout_constraintBottom_toTopOf="@+id/mainActivity_activeQuestionPromptTextView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/activateQuizButton" />
 
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="300dp"
-        android:layout_below="@id/activateNextQuestionButton">
+    <TextView
+        android:id="@+id/mainActivity_activeQuestionPromptTextView"
+        android:layout_width="182dp"
+        android:layout_height="26dp"
+        android:text="No Active Question"
+        android:textAlignment="center"
+        app:layout_constraintBottom_toTopOf="@+id/choicesRadioGroup"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/activateNextQuestionButton" />
 
-        <TextView
-            android:id="@+id/mainActivity_activeQuestionPromptTextView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="ActiveQuestionPrompt"
-            android:layout_centerHorizontal="true"
-            android:padding="50dp" />
+    <RadioGroup
+        android:id="@+id/choicesRadioGroup"
+        android:layout_width="172dp"
+        android:layout_height="158dp"
+        app:layout_constraintBottom_toTopOf="@+id/mainActivity_submitAnswerButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/mainActivity_activeQuestionPromptTextView" />
 
-        <TextView
-            android:id="@+id/mainActivity_activeQuestionChoicesTextView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Choices list"
-            android:layout_centerHorizontal="true"
-            android:layout_below="@id/mainActivity_activeQuestionPromptTextView"/>
-
-        <EditText
-            android:id="@+id/mainActivity_answerEditText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/mainActivity_activeQuestionChoicesTextView"
-            android:hint="Type an answer from the above list of choices"
-            />
-
-
-        <Button
-            android:id="@+id/mainActivity_submitAnswerButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Submit Answer"
-            android:layout_below="@id/mainActivity_answerEditText"
-            android:layout_centerHorizontal="true"
-            />
-
-    </RelativeLayout>
+    <Button
+        android:id="@+id/mainActivity_submitAnswerButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Submit Answer"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/choicesRadioGroup" />
 
 
-</RelativeLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

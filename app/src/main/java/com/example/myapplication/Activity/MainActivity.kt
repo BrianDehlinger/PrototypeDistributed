@@ -1,10 +1,14 @@
 package com.example.myapplication.Activity
 
+import android.app.ActionBar
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.provider.MediaStore
+import android.view.View
 import android.widget.*
+import android.widget.RadioGroup
 import androidx.appcompat.app.AppCompatActivity
 import com.example.myapplication.DAOs.Cache
 import com.example.myapplication.DAOs.QuizDatabase
@@ -23,6 +27,7 @@ import com.google.zxing.WriterException
 import java.io.Serializable
 import java.util.*
 import kotlin.concurrent.schedule
+
 
 // https://demonuts.com/kotlin-generate-qr-code/ was used for the basis of  QRCode generation and used pretty much all of the code for the QR methods. Great thanks to the authors!
 class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
@@ -81,7 +86,17 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
         setContentView(R.layout.activity_main)
 
+
         userType = intent.getSerializableExtra("EXTRA_USER_TYPE") as UserType?
+        if(UserType.CLIENT.equals(userType)) {
+            findViewById<Button>(R.id.generate_connection_qr_button).setVisibility(View.GONE)
+            findViewById<Button>(R.id.browse_questions).setVisibility(View.GONE)
+            findViewById<Button>(R.id.activateQuizButton).setVisibility(View.GONE)
+            findViewById<Button>(R.id.activateNextQuestionButton).setVisibility(View.GONE)
+        }
+        else {
+            findViewById<Button>(R.id.mainActivity_submitAnswerButton).setVisibility(View.GONE)
+        }
         sessionIdTextView = findViewById<TextView>(R.id.mainActivity_sessionIdTextView)
 
         if(UserType.SERVER.equals(userType)) {
@@ -122,20 +137,18 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         //specify the active question in the UI (will be null initially)
         //currentActiveQuestionTextView.setText("Active Question: " + currentActiveQuestion)
 
-        imageview = findViewById(R.id.iv)
         generateConnectionQrButton = findViewById(R.id.generate_connection_qr_button)
         networkInformation = NetworkInformation.NetworkInfoFactory.getNetworkInfo(this)
         val activateQuizButton = findViewById<Button>(R.id.activateQuizButton)
         val submitActiveQuestionAnswerButton = findViewById<Button>(R.id.mainActivity_submitAnswerButton)
         val activateNextQuestionButton = findViewById<Button>(R.id.activateNextQuestionButton)
+        val browseQuestionsBtn = findViewById<Button>(R.id.browse_questions)
 
         val dataaccess = QuizDatabase.getDatabase(this)
         val responseID = UUID.randomUUID().toString()
-        var browseQuestionsButton = findViewById<Button>(R.id.browse_questions)
         repository = RepositoryImpl(dataaccess.questionDao(), dataaccess.responseDao(), dataaccess.userDao(), dataaccess.quizDao())
 
         currentQuestionPromptTextView = findViewById<TextView>(R.id.mainActivity_activeQuestionPromptTextView)
-        currentQuestionChoicesTextView = findViewById<TextView>(R.id.mainActivity_activeQuestionChoicesTextView)
 
         Timer("Heartbeat", false).schedule(100, 30000){
             emitHeartBeat()
@@ -143,39 +156,31 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
         val quizId = UUID.randomUUID().toString()
 
-        browseQuestionsButton.setOnClickListener{
-            val intent = Intent(this, BrowseQuestions::class.java)
-            startActivityForResult(intent, 3)
-        }
-
-
-
-
-
-
-
-
         activateQuizButton.setOnClickListener{
             //Ony the server has the power to change the active question
             if(UserType.SERVER.equals(userType)) { //guarding against null userType values
                 println("PERMISSION TO ACTIVATE QUESTION GRANTED, " + userName)
                 activateQuestion(listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX))
-
-
                 //Updating the UI:
                 var newActiveQuestion = listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX)
 
                 var newActiveQuestionPrompt = newActiveQuestion.prompt
                 var newActiveQuestionChoicesList = newActiveQuestion.choices
 
-                var choicesListAsString: String = ""
-
+                val rgp = findViewById<View>(R.id.choicesRadioGroup) as RadioGroup
+                var rprms: RadioGroup.LayoutParams
                 for(choice in newActiveQuestionChoicesList) {
-                    choicesListAsString += "- " + choice + "\n"
+                    val rbn = RadioButton(this)
+                    rbn.setText(choice)
+                    rbn.id = View.generateViewId()
+                    rprms = RadioGroup.LayoutParams(
+                        ActionBar.LayoutParams.WRAP_CONTENT,
+                        ActionBar.LayoutParams.WRAP_CONTENT
+                    )
+                    rgp.addView(rbn, rprms)
                 }
 
                 currentQuestionPromptTextView?.setText(newActiveQuestionPrompt)
-                currentQuestionChoicesTextView?.setText(choicesListAsString)
 
                 CURRENT_QUESTION_INDEX++
 
@@ -201,14 +206,21 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 var newActiveQuestionPrompt = newActiveQuestion.prompt
                 var newActiveQuestionChoicesList = newActiveQuestion.choices
 
-                var choicesListAsString: String = ""
-
+                val rgp = findViewById<View>(R.id.choicesRadioGroup) as RadioGroup
+                rgp.removeAllViews()
+                var rprms: RadioGroup.LayoutParams
                 for(choice in newActiveQuestionChoicesList) {
-                    choicesListAsString += "- " + choice + "\n"
+                    val rbn = RadioButton(this)
+                    rbn.setText(choice)
+                    rbn.id = View.generateViewId()
+                    rprms = RadioGroup.LayoutParams(
+                        ActionBar.LayoutParams.WRAP_CONTENT,
+                        ActionBar.LayoutParams.WRAP_CONTENT
+                    )
+                    rgp.addView(rbn, rprms)
                 }
 
                 currentQuestionPromptTextView?.setText(newActiveQuestionPrompt)
-                currentQuestionChoicesTextView?.setText(choicesListAsString)
 
                 CURRENT_QUESTION_INDEX++
 
@@ -238,7 +250,9 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
 
         submitActiveQuestionAnswerButton.setOnClickListener{
-            val submittedAnswer = findViewById<EditText>(R.id.mainActivity_answerEditText).text.toString()
+            val rgp = findViewById<RadioGroup>(R.id.choicesRadioGroup)
+            val submittedAnswer = findViewById<EditText>(rgp.checkedRadioButtonId).text.toString()
+//            val submittedAnswer = "hello"
             println("USER SELECTED THE FOLLOWING ANSWER: " + submittedAnswer)
 
             var multipleChoiceResponse: MultipleChoiceResponse = MultipleChoiceResponse(
@@ -366,7 +380,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 //UI updating logic goes here
                 runOnUiThread{
                     println("UI updating should go here")
-                    updateCurrentActiveQuestionUI(multipleChoiceQuestion)
+//                    updateCurrentActiveQuestionUI(multipleChoiceQuestion)
                 }
             }
             if ("hb" == type){
@@ -407,7 +421,6 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         }
 
         currentQuestionPromptTextView?.setText(newActiveQuestionPrompt)
-        currentQuestionChoicesTextView?.setText(choicesListAsString)
     }
 
 
