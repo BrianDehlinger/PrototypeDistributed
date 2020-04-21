@@ -60,6 +60,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
     private var repository: RepositoryImpl? = null
 
     private var allResponsesList: ArrayList<MultipleChoiceResponse>? = ArrayList<MultipleChoiceResponse>()
+    var userMetadataTextView: TextView? = null
 
 
     //For BullyAlgorithm
@@ -155,8 +156,8 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
 
         //specify the userType in the UI's label
-        var userMetadataTextView: TextView = findViewById(R.id.userMetadata);
-        userMetadataTextView.setText("quizName: " + quizName + "\n" + "Username: " + userName)
+        userMetadataTextView= findViewById(R.id.userMetadata)
+        userMetadataTextView!!.setText("quizName: " + quizName + "\n" + "Username: " + userName)
 
         //specify the active question in the UI (will be null initially)
         //currentActiveQuestionTextView.setText("Active Question: " + currentActiveQuestion)
@@ -586,6 +587,10 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             livenessCheckRoundSinceServerLastSeen = 0
             currentServerLivenessStatus = LivenessStatus.GREEN
 
+            runOnUiThread {
+                updateQuizNameTextView(heartBeat.quiz!!.quiz_name)
+            }
+
             println("A new Server has been elected.")
         }
 
@@ -606,6 +611,11 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
         recordClientHeartBeat(heartBeat.userId, heartBeat.userName)
 
+    }
+
+    fun updateQuizNameTextView(nameOfQuiz: String) {
+        quizName = nameOfQuiz
+        userMetadataTextView!!.setText("quizName: " + quizName + "\n" + "Username: " + userName)
     }
 
     //for determining whether a new client has joined the session & managing the liveness data
