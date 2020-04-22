@@ -21,7 +21,7 @@ class AnswerQuestionActivity : AppCompatActivity() {
         val spinner = findViewById<Spinner>(R.id.active_question_spinner)
         val submitButton = findViewById<Button>(R.id.record_response)
 
-        val question = intent.getParcelableExtra<MultipleChoiceQuestion>("active_question")
+        val question = intent.getParcelableExtra<MultipleChoiceQuestion>("instructor_active_question")
         promptView.text = question?.prompt
         val choices = question!!.choices
         val choicesAdapter = ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, choices)
