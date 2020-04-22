@@ -203,7 +203,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
                 println("activateQuiz: listOfQuizQuestions?.size: " + listOfQuizQuestions?.size)
                 println("activateQuiz: quiz.questions.size: " + quiz!!.questions.size)
-                
+
                 println("PERMISSION TO ACTIVATE QUESTION GRANTED, " + userName)
                 activateQuestion(listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX))
 
@@ -235,6 +235,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
             } else {
                 println("YOU DONT HAVE PERMISSION TO ACTIVATE A NEW QUESTION, " + userName)
+
             }
         }
 
@@ -246,35 +247,10 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
             println("activateNextQuestion: quiz.questions.size: " + quiz!!.questions.size)
 
             if(CURRENT_QUESTION_INDEX < numberOfQuestions!!) { //guarding against null userType values
-
                 //Updating the UI:
                 var newActiveQuestion = listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX)
-
-                var newActiveQuestionPrompt = newActiveQuestion.prompt
-                var newActiveQuestionChoicesList = newActiveQuestion.choices
-
-                val rgp = findViewById<View>(R.id.choicesRadioGroup) as RadioGroup
-                rgp.removeAllViews()
-                var rprms: RadioGroup.LayoutParams
-                for(choice in newActiveQuestionChoicesList) {
-                    val rbn = RadioButton(this)
-                    rbn.setText(choice)
-                    rbn.id = View.generateViewId()
-                    rprms = RadioGroup.LayoutParams(
-                        ActionBar.LayoutParams.WRAP_CONTENT,
-                        ActionBar.LayoutParams.WRAP_CONTENT
-                    )
-                    rgp.addView(rbn, rprms)
-                }
-
-                currentQuestionPromptTextView?.setText(newActiveQuestionPrompt)
-
-                CURRENT_QUESTION_INDEX++
-
-                //callActivateQuestion method
-                println("ACTIVATING THE NEXT QUESTION")
                 activateQuestion(newActiveQuestion)
-
+                //CURRENT_QUESTION_INDEX++
             } else {
                 println("NO MORE QUESTIONS TO DISPLAY! OPEN A NEW ACTIVITY TO SHOW RESULTS")
 
@@ -365,7 +341,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         //Ony the server has the power to change the active question
         if(UserType.SERVER.equals(userType)) { //guarding against null userType values
             println("PERMISSION TO ACTIVATE QUESTION GRANTED, " + userName)
-            userName?.let { activateQuestion(it, questionToActivate) }
+            userName?.let { activateQuestion(it, questionToActivate)  }
         } else {
             println("YOU DONT HAVE PERMISSION TO ACTIVATE A NEW QUESTION, " + userName)
         }
@@ -465,15 +441,15 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 //currentActiveQuestionTextView.setText("Active Question: " + currentActiveQuestion)
                 println("A new Multiple Choice question has been activated!")
 
-                if(UserType.CLIENT.equals(userType)) {
-                    CURRENT_QUESTION_INDEX++
-                }
-
                 //UI updating logic goes here
                 runOnUiThread{
                     println("UI updating should go here")
-//                    updateCurrentActiveQuestionUI(multipleChoiceQuestion)
+                    updateCurrentActiveQuestionUI(multipleChoiceQuestion)
                 }
+
+//                if(UserType.CLIENT.equals(userType)) {
+//                    CURRENT_QUESTION_INDEX++
+//                }
             }
             if ("hb" == type){
                 onHeartBeat(message as HeartBeat)
@@ -503,16 +479,45 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
     private fun updateCurrentActiveQuestionUI(newActiveQuestion1: MultipleChoiceQuestion1) {
 
-        var newActiveQuestionPrompt = newActiveQuestion1.prompt
-        var newActiveQuestionChoicesList = newActiveQuestion1.choices
+        //Updating the UI:
 
-        var choicesListAsString: String = ""
+        var newActiveQuestion = listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX)
 
+        CURRENT_QUESTION_INDEX++
+
+        var newActiveQuestionPrompt = newActiveQuestion.prompt
+        var newActiveQuestionChoicesList = newActiveQuestion.choices
+
+        val rgp = findViewById<View>(R.id.choicesRadioGroup) as RadioGroup
+        rgp.removeAllViews()
+        var rprms: RadioGroup.LayoutParams
         for(choice in newActiveQuestionChoicesList) {
-            choicesListAsString += "- " + choice + "\n"
+            val rbn = RadioButton(this)
+            rbn.setText(choice)
+            rbn.id = View.generateViewId()
+            rprms = RadioGroup.LayoutParams(
+                ActionBar.LayoutParams.WRAP_CONTENT,
+                ActionBar.LayoutParams.WRAP_CONTENT
+            )
+            rgp.addView(rbn, rprms)
         }
 
         currentQuestionPromptTextView?.setText(newActiveQuestionPrompt)
+
+        //callActivateQuestion method
+        println("ACTIVATING THE NEXT QUESTION")
+        activateQuestion(newActiveQuestion)
+
+//        var newActiveQuestionPrompt = newActiveQuestion1.prompt
+//        var newActiveQuestionChoicesList = newActiveQuestion1.choices
+//
+//        var choicesListAsString: String = ""
+//
+//        for(choice in newActiveQuestionChoicesList) {
+//            choicesListAsString += "- " + choice + "\n"
+//        }
+//
+//        currentQuestionPromptTextView?.setText(newActiveQuestionPrompt)
     }
 
 
