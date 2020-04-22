@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">My Application</string>
+    <string name="app_name">Quizzoo</string>
     <string name="title_activity_main2">Main2Activity</string>
     <string name="generate_connection_qr_code">Generate Connection QR Code</string>
     <string name="generate_a_response">Generate a Response</string>
