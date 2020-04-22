@@ -464,7 +464,6 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 println("CURRENT QUESTION_INDEX is: " + CURRENT_QUESTION_INDEX)
                 println("RESPONSES RECORDED COUNT: " + allResponsesList?.size)
             }
-
             if("multiple_choice_response" == type) {
                 val multipleChoiceResponse = gson.fromJson(data, MultipleChoiceResponse::class.java)
 
@@ -472,6 +471,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
                 //store the multipleChoiceResponse
                 allResponsesList?.add(multipleChoiceResponse)
             }
+
 
         }).start()
     }
@@ -504,20 +504,6 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
         currentQuestionPromptTextView?.setText(newActiveQuestionPrompt)
 
-        //callActivateQuestion method
-        println("ACTIVATING THE NEXT QUESTION")
-        activateQuestion(newActiveQuestion)
-
-//        var newActiveQuestionPrompt = newActiveQuestion1.prompt
-//        var newActiveQuestionChoicesList = newActiveQuestion1.choices
-//
-//        var choicesListAsString: String = ""
-//
-//        for(choice in newActiveQuestionChoicesList) {
-//            choicesListAsString += "- " + choice + "\n"
-//        }
-//
-//        currentQuestionPromptTextView?.setText(newActiveQuestionPrompt)
     }
 
 
