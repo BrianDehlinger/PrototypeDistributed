@@ -43,7 +43,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
     var currentQuestionChoicesTextView: TextView? = null
 
     private var sessionIdTextView: TextView? = null
-    private var activateQuizButton: Button? = null
+//    private var activateQuizButton: Button? = null
     val converter = GSONConverter()
     var ip = "0.0.0.0"
     val gson = Gson()
@@ -91,7 +91,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
         if(UserType.CLIENT.equals(userType)) {
             findViewById<Button>(R.id.generate_connection_qr_button).setVisibility(View.GONE)
             findViewById<Button>(R.id.browse_questions).setVisibility(View.GONE)
-            findViewById<Button>(R.id.activateQuizButton).setVisibility(View.GONE)
+//            findViewById<Button>(R.id.activateQuizButton).setVisibility(View.GONE)
             findViewById<Button>(R.id.activateNextQuestionButton).setVisibility(View.GONE)
         }
         else {
@@ -139,7 +139,7 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
         generateConnectionQrButton = findViewById(R.id.generate_connection_qr_button)
         networkInformation = NetworkInformation.NetworkInfoFactory.getNetworkInfo(this)
-        val activateQuizButton = findViewById<Button>(R.id.activateQuizButton)
+//        val activateQuizButton = findViewById<Button>(R.id.activateQuizButton)
         val submitActiveQuestionAnswerButton = findViewById<Button>(R.id.mainActivity_submitAnswerButton)
         val activateNextQuestionButton = findViewById<Button>(R.id.activateNextQuestionButton)
         val browseQuestionsBtn = findViewById<Button>(R.id.browse_questions)
@@ -156,41 +156,41 @@ class MainActivity : AppCompatActivity(), UDPListener, HeartBeatListener {
 
         val quizId = UUID.randomUUID().toString()
 
-        activateQuizButton.setOnClickListener{
-            //Ony the server has the power to change the active question
-            if(UserType.SERVER.equals(userType)) { //guarding against null userType values
-                println("PERMISSION TO ACTIVATE QUESTION GRANTED, " + userName)
-                activateQuestion(listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX))
-                //Updating the UI:
-                var newActiveQuestion = listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX)
-
-                var newActiveQuestionPrompt = newActiveQuestion.prompt
-                var newActiveQuestionChoicesList = newActiveQuestion.choices
-
-                val rgp = findViewById<View>(R.id.choicesRadioGroup) as RadioGroup
-                var rprms: RadioGroup.LayoutParams
-                for(choice in newActiveQuestionChoicesList) {
-                    val rbn = RadioButton(this)
-                    rbn.setText(choice)
-                    rbn.id = View.generateViewId()
-                    rprms = RadioGroup.LayoutParams(
-                        ActionBar.LayoutParams.WRAP_CONTENT,
-                        ActionBar.LayoutParams.WRAP_CONTENT
-                    )
-                    rgp.addView(rbn, rprms)
-                }
-
-                currentQuestionPromptTextView?.setText(newActiveQuestionPrompt)
-
-                CURRENT_QUESTION_INDEX++
-
-                //callActivateQuestion method
-                activateQuestion(newActiveQuestion)
-
-            } else {
-                println("YOU DONT HAVE PERMISSION TO ACTIVATE A NEW QUESTION, " + userName)
-            }
-        }
+//        activateQuizButton.setOnClickListener{
+//            //Ony the server has the power to change the active question
+//            if(UserType.SERVER.equals(userType)) { //guarding against null userType values
+//                println("PERMISSION TO ACTIVATE QUESTION GRANTED, " + userName)
+//                activateQuestion(listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX))
+//                //Updating the UI:
+//                var newActiveQuestion = listOfQuizQuestions!!.get(CURRENT_QUESTION_INDEX)
+//
+//                var newActiveQuestionPrompt = newActiveQuestion.prompt
+//                var newActiveQuestionChoicesList = newActiveQuestion.choices
+//
+//                val rgp = findViewById<View>(R.id.choicesRadioGroup) as RadioGroup
+//                var rprms: RadioGroup.LayoutParams
+//                for(choice in newActiveQuestionChoicesList) {
+//                    val rbn = RadioButton(this)
+//                    rbn.setText(choice)
+//                    rbn.id = View.generateViewId()
+//                    rprms = RadioGroup.LayoutParams(
+//                        ActionBar.LayoutParams.WRAP_CONTENT,
+//                        ActionBar.LayoutParams.WRAP_CONTENT
+//                    )
+//                    rgp.addView(rbn, rprms)
+//                }
+//
+//                currentQuestionPromptTextView?.setText(newActiveQuestionPrompt)
+//
+//                CURRENT_QUESTION_INDEX++
+//
+//                //callActivateQuestion method
+//                activateQuestion(newActiveQuestion)
+//
+//            } else {
+//                println("YOU DONT HAVE PERMISSION TO ACTIVATE A NEW QUESTION, " + userName)
+//            }
+//        }
 
         activateNextQuestionButton.setOnClickListener{
             //Ony the server has the power to change the active question

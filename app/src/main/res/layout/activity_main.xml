@@ -47,34 +47,22 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/browse_questions"
-        app:layout_constraintBottom_toTopOf="@+id/activateQuizButton"
+        app:layout_constraintBottom_toTopOf="@+id/activateNextQuestionButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/generate_connection_qr_button" />
 
     <Button
-        android:id="@+id/activateQuizButton"
-        android:layout_width="411dp"
-        android:layout_height="wrap_content"
-        android:text="Activate Quiz"
-        app:layout_constraintBottom_toTopOf="@+id/activateNextQuestionButton"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/browse_questions" />
-
-    <Button
         android:id="@+id/activateNextQuestionButton"
         android:layout_width="411dp"
         android:layout_height="wrap_content"
-        android:layout_below="@id/activateQuizButton"
         android:text="Activate next question"
         app:layout_constraintBottom_toTopOf="@+id/mainActivity_activeQuestionPromptTextView"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/activateQuizButton" />
+        app:layout_constraintTop_toBottomOf="@+id/browse_questions" />
 
     <TextView
         android:id="@+id/mainActivity_activeQuestionPromptTextView"
@@ -90,8 +78,8 @@
 
     <RadioGroup
         android:id="@+id/choicesRadioGroup"
-        android:layout_width="172dp"
-        android:layout_height="158dp"
+        android:layout_width="317dp"
+        android:layout_height="164dp"
         app:layout_constraintBottom_toTopOf="@+id/mainActivity_submitAnswerButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
