@@ -1,3 +1,9 @@
+
+# App Walkthrough
+
+[<img src="resources/roidRageBackdrop.png" width="50%">](https://www.youtube.com/watch?v=sy_zc2BwwQw)
+
+
 # Running the Application via an Emulator
 
 ### Configuring Emulator Port-Forwarding on MacOSX:
@@ -22,7 +28,7 @@ $ brew cask install android-platform-tools
 
 2). Verify that `adb` was installed correctly by opening Android Studio and launching a device emulator instance (the kind of device does not matter).
 
-![emulator instance running](resources/emulatorRunning.png)
+![emulator instance running](resources/walkthrough.mp4)
 
 Leave the emulator device running. `adb`can detect any active emulator instances. Run the following command to list all of the instances that `adb` has detected.  The emulator instance, along with its port number, will be displayed.
 
