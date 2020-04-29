@@ -1,6 +1,9 @@
 package com.example.myapplication.Networking
 
+import com.example.myapplication.Models.ElectionNotification
 import com.example.myapplication.Models.MultipleChoiceQuestion1
+import com.example.myapplication.Models.MultipleChoiceResponse
+import com.example.myapplication.Models.NewServerNotification
 import java.io.DataOutputStream
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -35,5 +38,30 @@ class TCPClient: Client{
         questionToActivate: MultipleChoiceQuestion1
     ) {
         println("PASS")
+    }
+
+    override fun propagateMultipleChoiceResponse(
+        toString: String,
+        ip: String,
+        port: Int,
+        multipleChoiceResponse: MultipleChoiceResponse
+    ) {
+        TODO("Not yet implemented")
+    }
+
+    override fun propagateNewElectionNotification(
+        electionNotification: ElectionNotification,
+        ip: String,
+        port: Int
+    ) {
+        TODO("Not yet implemented")
+    }
+
+    override fun propagateNewServerNotification(
+        newServerNotification: NewServerNotification,
+        ip: String,
+        port: Int
+    ) {
+        TODO("Not yet implemented")
     }
 }

@@ -1,60 +1,110 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/linear_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context="com.example.myapplication.MainActivity">
+    tools:context="com.example.myapplication.Activity.MainActivity">
+
+    <TextView
+        android:id="@+id/mainActivity_sessionIdTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/generate_connection_qr_button"
         android:text="@string/generate_connection_qr_code"
-        android:layout_marginTop="10dp"/>
+        android:layout_marginTop="10dp"
+        android:layout_below="@id/mainActivity_sessionIdTextView"
+        />
 
     <ImageView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
-        android:id="@+id/iv"/>
-
-    <Button
-        android:id="@+id/create_question"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/create_a_question"/>
-
-    <Button
-        android:id="@+id/answer_active"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/answer_the_active_question"/>
-
+        android:id="@+id/iv"
+        android:layout_below="@id/generate_connection_qr_button"
+        />
 
     <Button
         android:id="@+id/browse_questions"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/browse_questions"/>
+        android:text="@string/browse_questions"
+        android:layout_below="@id/iv"/>
 
     <TextView
         android:id="@+id/userMetadata"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
-
-    <Button
-        android:id="@+id/activateDummyQuestion"
-        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Activate Dummy Question"
-        />
+        android:layout_below="@id/browse_questions"/>
 
     <TextView
         android:id="@+id/currentActiveQuestionTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_below="@id/userMetadata"
         />
 
-</LinearLayout>
+    <Button
+        android:id="@+id/activateQuizButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/currentActiveQuestionTextView"
+        android:text="Activate Quiz"/>
+
+    <Button
+        android:id="@+id/activateNextQuestionButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/activateQuizButton"
+        android:text="Activate next question"/>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:layout_below="@id/activateNextQuestionButton">
+
+        <TextView
+            android:id="@+id/mainActivity_activeQuestionPromptTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ActiveQuestionPrompt"
+            android:layout_centerHorizontal="true"
+            android:padding="50dp" />
+
+        <TextView
+            android:id="@+id/mainActivity_activeQuestionChoicesTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Choices list"
+            android:layout_centerHorizontal="true"
+            android:layout_below="@id/mainActivity_activeQuestionPromptTextView"/>
+
+        <EditText
+            android:id="@+id/mainActivity_answerEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/mainActivity_activeQuestionChoicesTextView"
+            android:hint="Type an answer from the above list of choices"
+            />
+
+
+        <Button
+            android:id="@+id/mainActivity_submitAnswerButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Submit Answer"
+            android:layout_below="@id/mainActivity_answerEditText"
+            android:layout_centerHorizontal="true"
+            />
+
+    </RelativeLayout>
+
+
+</RelativeLayout>

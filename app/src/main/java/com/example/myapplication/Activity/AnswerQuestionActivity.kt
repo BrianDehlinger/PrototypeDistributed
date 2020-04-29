@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.example.myapplication.Activity
 
 import android.app.Activity
 import android.content.Intent
@@ -10,7 +10,7 @@ import android.widget.Spinner
 import android.widget.TextView
 import com.example.myapplication.Models.MultipleChoiceQuestion
 import com.example.myapplication.Models.MultipleChoiceResponse
-import java.util.*
+import com.example.myapplication.R
 
 class AnswerQuestionActivity : AppCompatActivity() {
 
@@ -32,7 +32,7 @@ class AnswerQuestionActivity : AppCompatActivity() {
         submitButton.setOnClickListener{
             val answer = spinner.selectedItem as String
             val returnIntent = Intent()
-            val response = MultipleChoiceResponse(response_id = intent.getStringExtra("response_id") as String, parent_question_id = question.question_id, quiz_id = intent.getStringExtra("quiz_id") as String, user_id = intent.getStringExtra("user_id") as String, answer = answer)
+            val response = MultipleChoiceResponse(response_id = intent.getStringExtra("response_id") as String, parent_question_id = question.question_id, quiz_id = intent.getStringExtra("quiz_id") as String, user_id = intent.getStringExtra("user_id") as String, answer = answer, prompt = question?.prompt)
             returnIntent.putExtra("response", response)
             setResult(Activity.RESULT_OK, returnIntent)
             finish()

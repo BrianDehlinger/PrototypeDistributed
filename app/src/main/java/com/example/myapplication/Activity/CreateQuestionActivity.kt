@@ -1,24 +1,32 @@
-package com.example.myapplication
+package com.example.myapplication.Activity
 
 import android.app.Activity
-import android.content.DialogInterface
+import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
 import android.widget.*
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.example.myapplication.Models.MultipleChoiceQuestion
-import kotlinx.android.synthetic.main.activity_create_question.*
+import com.example.myapplication.Models.MultipleChoiceQuestion1
+import com.example.myapplication.R
 import java.util.*
 
 
 // https://www.youtube.com/watch?v=nlqtyfshUkc was used to help with this implementation as was https://www.androidly.net/309/android-alert-dialog-using-kotlin
 
 class CreateQuestionActivity : AppCompatActivity() {
+    private var promptEditText: EditText? = null
+    private var addChoiceButton: Button? = null
+    private var submitButton: Button? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_create_question)
+
+        promptEditText = findViewById<EditText>(R.id.prompt)
+        addChoiceButton = findViewById<Button>(R.id.add_choice)
+        submitButton = findViewById<Button>(R.id.submit_question)
+
         val layout = findViewById<LinearLayout>(R.id.create_question)
         val addChoiceButton = findViewById<Button>(R.id.add_choice)
         val submitButton = findViewById<Button>(R.id.submit_question)
@@ -55,12 +63,23 @@ class CreateQuestionActivity : AppCompatActivity() {
             builder.setPositiveButton("OK") { dialog, which ->
                 answer = spinner.selectedItem as String
                 val prompt_text = promptView.text.toString()
-                val quizId = intent.getStringExtra("quizID")
-                val question = MultipleChoiceQuestion(answer=answer, prompt = prompt_text, quiz_id = quizId, choices = choices, question_id = UUID.randomUUID().toString())
+                //val quizId = intent.getStringExtra("quizID")
+                val quizId = UUID.randomUUID()
+                val questionId = UUID.randomUUID()
+
+                val newQuestion1 = MultipleChoiceQuestion1(quizId, questionId, prompt_text, choices, answer)
+
                 dialog.dismiss()
-                val returnIntent = Intent()
-                returnIntent.putExtra("question", question)
-                setResult(Activity.RESULT_OK, returnIntent)
+
+                //pass the dummyQuestion object back to the MainActivity with the new data
+                val intent = Intent(applicationContext, CreateQuizActivity::class.java)
+                val newQuestionAsJson = newQuestion1.toString()
+                intent.putExtra("newQuestion", newQuestionAsJson)
+                startActivity(intent)
+
+                println("CRAFTED THE FOLLOWING QUESTION: " + newQuestion1.toString())
+
+                setResult(Activity.RESULT_OK, intent)
                 finish()
             }
             builder.setNegativeButton("Dismiss"){dialog, which ->
@@ -69,5 +88,6 @@ class CreateQuestionActivity : AppCompatActivity() {
             builder.setView(view)
             builder.create().show()
         }
+
     }
 }

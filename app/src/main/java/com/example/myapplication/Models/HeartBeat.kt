@@ -4,5 +4,8 @@ data class HeartBeat(
     val type: String = "hb",
     val ip: String,
     val port: String,
-    val peer_type: String
+    val userType: UserType,
+    val userName: String,
+    val userId: Double,
+    val quiz: Quiz1? = null
 )
